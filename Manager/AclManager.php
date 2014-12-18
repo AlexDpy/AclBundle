@@ -8,6 +8,7 @@ use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
 use Symfony\Component\Security\Acl\Exception\AclNotFoundException;
+use Symfony\Component\Security\Acl\Model\AclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
 use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
@@ -286,9 +287,20 @@ class AclManager
         }
     }
 
-    public function revokeRoleAgainstObject()
+    /**
+     * @param string|array $permissions
+     * @param object       $object
+     * @param string|Role  $role
+     * @param null|string  $field
+     */
+    public function revokeRoleAgainstObject($permissions, $object, $role, $field = null)
     {
-        //@TODO
+        $objectIdentity = ObjectIdentity::fromDomainObject($object);
+        $securityIdentity = $this->getRoleSecurityIdentity($role);
+
+        if (null !== $acl = $this->findAcl($objectIdentity)) {
+            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        }
     }
 
     /**
@@ -297,14 +309,12 @@ class AclManager
      * @param string|array              $permissions
      * @param string                    $type             class|object
      * @param null|string               $field
-     *
-     * @throws \InvalidArgumentException
      */
     protected function insertAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
     {
         $permissions = (array) $permissions;
         foreach ($permissions as $permission) {
-            $mask = $this->getSmallestMask($permission);
+            $mask = min($this->resolveMasks($permission));
 
             if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
                 if (null === $field) {
@@ -324,20 +334,19 @@ class AclManager
      * @param string|array              $permissions
      * @param string                    $type             class|object
      * @param null|string               $field
-     *
-     * @throws \InvalidArgumentException
      */
     protected function deleteAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
     {
+        $type = ucfirst($type);
+        $getMethod = null === $field ? 'get' . $type . 'Aces' : 'get' . $type . 'FieldAces';
+        $deleteMethod = null === $field ? 'delete' . $type . 'Ace' : 'delete' . $type . 'FieldAce';
+
         $permissions = (array) $permissions;
         foreach ($permissions as $permission) {
-            $mask = $this->getBiggestMask($permission);
-
-            $getMethod = null === $field ? 'get' . ucfirst($type) . 'Aces' : 'get' . ucfirst($type) . 'FieldAces';
-            $deleteMethod = null === $field ? 'delete' . ucfirst($type) . 'Ace' : 'delete' . ucfirst($type) . 'FieldAce';
+            $mask = max($this->resolveMasks($permission));
 
             foreach ($acl->{$getMethod}($field) as $index => $ace) {
-                if ($mask === $ace->getMask() && $securityIdentity->equals($ace->getSecurityIdentity())) {
+                if ($mask <= $ace->getMask() && $securityIdentity->equals($ace->getSecurityIdentity())) {
                     $acl->{$deleteMethod}($index, $field);
                 }
             }
@@ -347,18 +356,18 @@ class AclManager
     }
 
     /**
-     * @param MutableAclInterface       $acl
+     * @param AclInterface              $acl
      * @param SecurityIdentityInterface $securityIdentity
      * @param int                       $mask
      * @param string                    $type             class|object
      * @param null|string               $field
      *
      * @return bool
-     * @throws \InvalidArgumentException
      */
-    protected function hasAce(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $mask, $type, $field = null)
+    protected function hasAce(AclInterface $acl, SecurityIdentityInterface $securityIdentity, $mask, $type, $field = null)
     {
-        $method = null === $field ? 'get' . ucfirst($type) . 'Aces' : 'get' . ucfirst($type) . 'FieldAces';
+        $type = ucfirst($type);
+        $method = null === $field ? 'get' . $type . 'Aces' : 'get' . $type . 'FieldAces';
 
         foreach ($acl->{$method}($field) as $ace) {
             if ($mask === $ace->getMask() && $securityIdentity->equals($ace->getSecurityIdentity())) {
@@ -372,23 +381,21 @@ class AclManager
     /**
      * @param ObjectIdentityInterface $objectIdentity
      *
-     * @return \Symfony\Component\Security\Acl\Model\AclInterface|\Symfony\Component\Security\Acl\Model\MutableAclInterface
+     * @return AclInterface|MutableAclInterface
      */
     protected function findOrCreateAcl(ObjectIdentityInterface $objectIdentity)
     {
         try {
-            $acl = $this->aclProvider->findAcl($objectIdentity);
+            return $this->aclProvider->findAcl($objectIdentity);
         } catch (AclNotFoundException $e) {
-            $acl = $this->aclProvider->createAcl($objectIdentity);
+            return $this->aclProvider->createAcl($objectIdentity);
         }
-
-        return $acl;
     }
 
     /**
      * @param ObjectIdentityInterface $objectIdentity
      *
-     * @return null|\Symfony\Component\Security\Acl\Model\AclInterface
+     * @return null|AclInterface
      */
     protected function findAcl(ObjectIdentityInterface $objectIdentity)
     {
@@ -400,50 +407,25 @@ class AclManager
     }
 
     /**
-     * @param $permission
+     * @param string      $permission
+     * @param null|object $object
      *
-     * @return mixed
-     * @throws \Exception
+     * @return array
+     * @throws UnresolvedMaskException
      */
-    protected function getSmallestMask($permission)
+    protected function resolveMasks($permission, $object = null)
     {
-        if (
-            !$this->permissionMap->contains(strtoupper($permission)) ||
-            null !== $masks = $this->permissionMap->getMasks($permission, null)
-        ) {
-            throw new \Exception;
+        $permission = strtoupper($permission);
+
+        if (!$this->permissionMap->contains($permission)) {
+            throw UnresolvedMaskException::nonExistentPermission($permission);
         }
 
-        return min($masks);
-    }
-
-    /**
-     * @param string $permission
-     *
-     * @return int
-     * @throws \Exception
-     */
-    protected function getBiggestMask($permission)
-    {
-        if (
-            !$this->permissionMap->contains(strtoupper($permission)) ||
-            null !== $masks = $this->permissionMap->getMasks($permission, null)
-        ) {
-            throw new \Exception;
+        if (null !== $masks = $this->permissionMap->getMasks($permission, $object)) {
+            throw UnresolvedMaskException::nonSupportedPermission($permission, $object);
         }
 
-        return max($masks);
-//
-//        $mask = constant('AppBundle\Security\PermissionMap::MASK_' . strtoupper($permission));
-//
-//        if (!is_int($mask)) {
-//            throw UnresolvedMaskException::wrongType(
-//                'AppBundle\Security\PermissionMap::MASK_' . strtoupper($permission),
-//                $mask
-//            );
-//        }
-//
-//        return $mask;
+        return $masks;
     }
 
     /**

@@ -5,17 +5,30 @@ namespace AlexDpy\AclBundle\Exception;
 class UnresolvedMaskException extends \Exception
 {
     /**
-     * @param $constantPath
-     * @param $resolvedMask
+     * @param string $permission
      *
      * @return UnresolvedMaskException
      */
-    public static function wrongType($constantPath, $resolvedMask)
+    public static function nonExistentPermission($permission)
     {
-        return new self(sprintf(
-            'The resolved mask must be an integer, but %s is a(n) %s.',
-            $constantPath,
-            gettype($resolvedMask)
-        ));
+        return new self(sprintf('Permission "%s" does not exist in this permissionMap', $permission));
+    }
+
+    /**
+     * @param string      $permission
+     * @param null|string $object
+     *
+     * @return UnresolvedMaskException
+     */
+    public static function nonSupportedPermission($permission, $object = null)
+    {
+        if (null === $object) {
+            return new self(sprintf('Permission "%s" is not supported in this permissionMap', $permission));
+        } else {
+            return new self(sprintf('Permission/object (%s/%s) combination is not supported in the permissionMap',
+                $permission,
+                $object
+            ));
+        }
     }
 }
