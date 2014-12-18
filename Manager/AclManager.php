@@ -457,7 +457,7 @@ class AclManager
             throw UnresolvedMaskException::nonExistentPermission($permission);
         }
 
-        if (null !== $masks = $this->permissionMap->getMasks($permission, $object)) {
+        if (null === $masks = $this->permissionMap->getMasks($permission, $object)) {
             throw UnresolvedMaskException::nonSupportedPermission($permission, $object);
         }
 
