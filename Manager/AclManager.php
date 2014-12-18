@@ -304,6 +304,42 @@ class AclManager
     }
 
     /**
+     * @param string|array       $permissions
+     * @param string|object      $class
+     * @param null|UserInterface $user
+     * @param null|string        $field
+     */
+    public function revokeUserAgainstClass($permissions, $class, UserInterface $user = null, $field = null)
+    {
+        if (is_object($class)) {
+            $class = get_class($class);
+        }
+
+        $objectIdentity = new ObjectIdentity(self::ACE_TYPE_CLASS, $class);
+        $securityIdentity = $this->getUserSecurityIdentity($user);
+
+        if (null !== $acl = $this->findAcl($objectIdentity)) {
+            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_CLASS, $field);
+        }
+    }
+
+    /**
+     * @param string|array       $permissions
+     * @param object             $object
+     * @param null|UserInterface $user
+     * @param null|string        $field
+     */
+    public function revokeUserAgainstObject($permissions, $object, UserInterface $user = null, $field = null)
+    {
+        $objectIdentity = ObjectIdentity::fromDomainObject($object);
+        $securityIdentity = $this->getUserSecurityIdentity($user);
+
+        if (null !== $acl = $this->findAcl($objectIdentity)) {
+            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        }
+    }
+
+    /**
      * @param MutableAclInterface       $acl
      * @param SecurityIdentityInterface $securityIdentity
      * @param string|array              $permissions
