@@ -1,0 +1,26 @@
+<?php
+
+namespace AlexDpy\AclBundle\DependencyInjection;
+
+use Symfony\Component\Config\Definition\Builder\TreeBuilder;
+use Symfony\Component\Config\Definition\ConfigurationInterface;
+
+class Configuration implements ConfigurationInterface
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getConfigTreeBuilder()
+    {
+        $treeBuilder = new TreeBuilder();
+        $rootNode = $treeBuilder->root('alex_dpy_acl');
+
+        $rootNode
+            ->children()
+                ->scalarNode('permission_map_id')->defaultValue('security.acl.permission.map')->cannotBeEmpty()->end()
+            ->end();
+
+        return $treeBuilder;
+    }
+}
+ 

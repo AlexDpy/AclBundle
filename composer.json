@@ -1,0 +1,29 @@
+{
+    "name": "alexdpy/acl-bundle",
+    "description": "Acl Bundle",
+    "keywords": ["Acl"],
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexandre Dupuy",
+            "email": "alex.dpy@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "symfony/http-kernel": "~2.6",
+        "symfony/dependency-injection": "~2.6",
+        "symfony/config": "~2.6",
+        "symfony/security-acl": "~2.6",
+        "symfony/security-core": "~2.6"
+    },
+    "autoload": {
+        "psr-4": { "AlexDpy\\AclBundle\\": "" }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
