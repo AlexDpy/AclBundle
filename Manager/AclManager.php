@@ -191,7 +191,7 @@ class AclManager
         $fakeRoleToken = $role instanceof TokenInterface ? $role :  new FakeRoleToken((array) $role);
 
         if (null !== $field) {
-            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field); //@TODO need ObjectIdentity::fromDomainObject($object) ??? à tester
+            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
         }
 
         return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
@@ -214,7 +214,7 @@ class AclManager
         } elseif ($user instanceof UserInterface) {
             $token = new FakeUserToken($user);
         } elseif (is_string($user)) {
-            $token = new FakeUserToken(new User($user, ''));
+            $token = new FakeUserToken(new User($user, ''));//@TODO comment récupérer la bonne classe User ?
         } else {
             throw new \Exception; //@TODO
         }
