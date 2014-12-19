@@ -4,6 +4,7 @@ namespace AlexDpy\AclBundle\Manager;
 
 use AlexDpy\AclBundle\Exception\UnresolvedMaskException;
 use AlexDpy\AclBundle\Token\FakeRoleToken;
+use AlexDpy\AclBundle\Token\FakeUserToken;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
@@ -21,6 +22,7 @@ use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\Role\RoleInterface;
+use Symfony\Component\Security\Core\User\User;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 class AclManager
@@ -173,7 +175,7 @@ class AclManager
             ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
             : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
 
-        return $this->accessDecisionManager->decide($fakeRoleToken, $attributes, $object);
+        return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
     }
 
     /**
@@ -192,7 +194,49 @@ class AclManager
             $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field); //@TODO need ObjectIdentity::fromDomainObject($object) ??? à tester
         }
 
-        return $this->accessDecisionManager->decide($fakeRoleToken, $attributes, $object);
+        return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
+    }
+
+    public function userIsGranted()
+    {
+        //@TODO
+    }
+
+    /**
+     * @param TokenInterface|UserInterface|string $user
+     * @param string|array                        $attributes
+     * @param string|object                       $class
+     * @param null|string                         $field
+     *
+     * @return bool
+     */
+    public function userIsGrantedAgainstClass($user, $attributes, $class, $field = null)
+    {
+        //@TODO
+        if ($user instanceof TokenInterface) {
+            $token = $user;
+        } elseif ($user instanceof UserInterface) {
+            $token = new FakeUserToken($user);
+        } elseif (is_string($user)) {
+            $token = new FakeUserToken(new User($user, ''));
+        } else {
+            throw new \Exception; //@TODO
+        }
+
+        if (is_object($class)) {
+            $class = get_class($class);
+        }
+
+        $object = null === $field
+            ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
+            : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
+
+        return $this->accessDecisionManager->decide($token, (array) $attributes, $object);
+    }
+
+    public function userIsGrantedAgainstObject()
+    {
+        //@TODO
     }
 
     /**
