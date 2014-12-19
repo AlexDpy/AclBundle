@@ -126,7 +126,7 @@ class AclManager
     public function isGrantedAgainstObject($attributes, $object, $field = null)
     {
         if (null !== $field) {
-            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field); //@TODO need ObjectIdentity::fromDomainObject($object) ??? à tester
+            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
         }
 
         return $this->authorizationChecker->isGranted($attributes, $object);
@@ -197,9 +197,37 @@ class AclManager
         return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
     }
 
-    public function userIsGranted()
+    /**
+     * @param TokenInterface|UserInterface|string $user
+     * @param string|array                        $attributes
+     * @param null|string|object                  $classOrObject
+     * @param null|string                         $field
+     *
+     * @return bool
+     * @throws \Exception
+     */
+    public function userIsGranted($user, $attributes, $classOrObject = null, $field = null)
     {
         //@TODO
+        if ($user instanceof TokenInterface) {
+            $token = $user;
+        } elseif ($user instanceof UserInterface) {
+            $token = new FakeUserToken($user);
+        } elseif (is_string($user)) {
+            $token = new FakeUserToken(new User($user, ''));
+        } else {
+            throw new \Exception; //@TODO
+        }
+
+        if (null === $classOrObject) {
+            return $this->accessDecisionManager->decide($token, (array) $attributes, $classOrObject);
+        } elseif (is_string($classOrObject)) {
+            return $this->userIsGrantedAgainstClass($token, (array) $attributes, $classOrObject, $field);
+        } elseif (is_object($classOrObject)) {
+            return $this->userIsGrantedAgainstObject($token, (array) $attributes, $classOrObject, $field);
+        }
+
+        return false;
     }
 
     /**
@@ -234,9 +262,24 @@ class AclManager
         return $this->accessDecisionManager->decide($token, (array) $attributes, $object);
     }
 
-    public function userIsGrantedAgainstObject()
+    public function userIsGrantedAgainstObject($user, $attributes, $object, $field = null)
     {
         //@TODO
+        if ($user instanceof TokenInterface) {
+            $token = $user;
+        } elseif ($user instanceof UserInterface) {
+            $token = new FakeUserToken($user);
+        } elseif (is_string($user)) {
+            $token = new FakeUserToken(new User($user, ''));
+        } else {
+            throw new \Exception; //@TODO
+        }
+
+        if (null !== $field) {
+            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
+        }
+
+        return $this->accessDecisionManager->decide($token, (array) $attributes, $object);
     }
 
     /**
