@@ -133,40 +133,36 @@ class AclManager
     }
 
     /**
-     * @param string|RoleInterface $role
-     * @param string|array         $attributes
-     * @param null|string|object   $classOrObject
-     * @param null|string          $field
+     * @param string|array|RoleInterface|TokenInterface $role
+     * @param string|array                              $attributes
+     * @param null|string|object                        $classOrObject
+     * @param null|string                               $field
      *
      * @return bool
      */
     public function roleIsGranted($role, $attributes, $classOrObject = null, $field = null)
     {
-        $fakeRoleToken = new FakeRoleToken((array) $role);
-
         if (null === $classOrObject) {
-            return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $classOrObject);
+            return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->roleIsGrantedAgainstClass($fakeRoleToken, (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedAgainstClass($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->roleIsGrantedAgainstObject($fakeRoleToken, (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedAgainstObject($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
         }
 
         return false;
     }
 
     /**
-     * @param string|RoleInterface|TokenInterface $role
-     * @param string|array                        $attributes
-     * @param string|object                       $class
-     * @param null|string                         $field
+     * @param string|array|RoleInterface|TokenInterface $role
+     * @param string|array                              $attributes
+     * @param string|object                             $class
+     * @param null|string                               $field
      *
      * @return bool
      */
     public function roleIsGrantedAgainstClass($role, $attributes, $class, $field = null)
     {
-        $fakeRoleToken = $role instanceof TokenInterface ? $role :  new FakeRoleToken((array) $role);
-
         if (is_object($class)) {
             $class = get_class($class);
         }
@@ -175,26 +171,24 @@ class AclManager
             ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
             : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
 
-        return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
+        return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $object);
     }
 
     /**
-     * @param string|RoleInterface|TokenInterface $role
-     * @param string|array                        $attributes
-     * @param object                              $object
-     * @param null|string                         $field
+     * @param string|array|RoleInterface|TokenInterface $role
+     * @param string|array                              $attributes
+     * @param object                                    $object
+     * @param null|string                               $field
      *
      * @return bool
      */
     public function roleIsGrantedAgainstObject($role, $attributes, $object, $field = null)
     {
-        $fakeRoleToken = $role instanceof TokenInterface ? $role :  new FakeRoleToken((array) $role);
-
         if (null !== $field) {
             $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
         }
 
-        return $this->accessDecisionManager->decide($fakeRoleToken, (array) $attributes, $object);
+        return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $object);
     }
 
     /**
@@ -208,23 +202,12 @@ class AclManager
      */
     public function userIsGranted($user, $attributes, $classOrObject = null, $field = null)
     {
-        //@TODO
-        if ($user instanceof TokenInterface) {
-            $token = $user;
-        } elseif ($user instanceof UserInterface) {
-            $token = new FakeUserToken($user);
-        } elseif (is_string($user)) {
-            $token = new FakeUserToken(new User($user, ''));//@TODO comment récupérer la bonne classe User ?
-        } else {
-            throw new \Exception; //@TODO
-        }
-
         if (null === $classOrObject) {
-            return $this->accessDecisionManager->decide($token, (array) $attributes, $classOrObject);
+            return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->userIsGrantedAgainstClass($token, (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedAgainstClass($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->userIsGrantedAgainstObject($token, (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedAgainstObject($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
         }
 
         return false;
@@ -240,17 +223,6 @@ class AclManager
      */
     public function userIsGrantedAgainstClass($user, $attributes, $class, $field = null)
     {
-        //@TODO
-        if ($user instanceof TokenInterface) {
-            $token = $user;
-        } elseif ($user instanceof UserInterface) {
-            $token = new FakeUserToken($user);
-        } elseif (is_string($user)) {
-            $token = new FakeUserToken(new User($user, ''));
-        } else {
-            throw new \Exception; //@TODO
-        }
-
         if (is_object($class)) {
             $class = get_class($class);
         }
@@ -259,27 +231,24 @@ class AclManager
             ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
             : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
 
-        return $this->accessDecisionManager->decide($token, (array) $attributes, $object);
+        return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $object);
     }
 
+    /**
+     * @param TokenInterface|UserInterface|string $user
+     * @param string|array                        $attributes
+     * @param object                              $object
+     * @param null|string                         $field
+     *
+     * @return bool
+     */
     public function userIsGrantedAgainstObject($user, $attributes, $object, $field = null)
     {
-        //@TODO
-        if ($user instanceof TokenInterface) {
-            $token = $user;
-        } elseif ($user instanceof UserInterface) {
-            $token = new FakeUserToken($user);
-        } elseif (is_string($user)) {
-            $token = new FakeUserToken(new User($user, ''));
-        } else {
-            throw new \Exception; //@TODO
-        }
-
         if (null !== $field) {
             $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
         }
 
-        return $this->accessDecisionManager->decide($token, (array) $attributes, $object);
+        return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $object);
     }
 
     /**
@@ -430,7 +399,7 @@ class AclManager
      * @param MutableAclInterface       $acl
      * @param SecurityIdentityInterface $securityIdentity
      * @param string|array              $permissions
-     * @param string                    $type             class|object
+     * @param string                    $type
      * @param null|string               $field
      */
     protected function insertAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
@@ -455,7 +424,7 @@ class AclManager
      * @param MutableAclInterface       $acl
      * @param SecurityIdentityInterface $securityIdentity
      * @param string|array              $permissions
-     * @param string                    $type             class|object
+     * @param string                    $type
      * @param null|string               $field
      */
     protected function deleteAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
@@ -482,7 +451,7 @@ class AclManager
      * @param AclInterface              $acl
      * @param SecurityIdentityInterface $securityIdentity
      * @param int                       $mask
-     * @param string                    $type             class|object
+     * @param string                    $type
      * @param null|string               $field
      *
      * @return bool
@@ -571,5 +540,31 @@ class AclManager
     protected function getRoleSecurityIdentity($role)
     {
         return new RoleSecurityIdentity($role);
+    }
+
+    /**
+     * @param string|array|RoleInterface|TokenInterface $role
+     *
+     * @return FakeRoleToken|TokenInterface
+     */
+    protected function getRoleToken($role)
+    {
+        return $role instanceof TokenInterface ? $role :  new FakeRoleToken((array) $role);
+    }
+
+    /**
+     * @param TokenInterface|UserInterface|string $user
+     *
+     * @return TokenInterface
+     */
+    protected function getUserToken($user)
+    {
+        if ($user instanceof TokenInterface) {
+            return $user;
+        } elseif ($user instanceof UserInterface) {
+            return new FakeUserToken($user);
+        } else {
+            return new FakeUserToken(new User($user, ''));
+        }
     }
 }

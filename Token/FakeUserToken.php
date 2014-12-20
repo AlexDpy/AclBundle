@@ -12,7 +12,7 @@ class FakeUserToken extends AbstractToken
      */
     public function __construct(UserInterface $user)
     {
-        parent::__construct([]);
+        parent::__construct($user->getRoles());
         $this->setUser($user);
     }
 
