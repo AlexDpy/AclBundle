@@ -139,9 +139,9 @@ class AclManager
         if (null === $classOrObject) {
             return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->roleIsGrantedOnClass($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedOnClass($this->getRoleToken($role), $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->roleIsGrantedOnObject($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedOnObject($this->getRoleToken($role), $attributes, $classOrObject, $field);
         }
 
         return false;
@@ -194,9 +194,9 @@ class AclManager
         if (null === $classOrObject) {
             return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->userIsGrantedOnClass($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedOnClass($this->getUserToken($user), $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->userIsGrantedOnObject($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedOnObject($this->getUserToken($user), $attributes, $classOrObject, $field);
         }
 
         return false;
