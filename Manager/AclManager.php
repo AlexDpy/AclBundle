@@ -412,10 +412,10 @@ class AclManager
 
         $permissions = (array) $permissions;
         foreach ($permissions as $permission) {
-            $mask = max($this->resolveMasks($permission));
+            $masks = $this->resolveMasks($permission);
 
             foreach ($acl->{$getMethod}($field) as $index => $ace) {
-                if ($mask <= $ace->getMask() && $securityIdentity->equals($ace->getSecurityIdentity())) {
+                if ($securityIdentity->equals($ace->getSecurityIdentity()) && in_array($ace->getMask(), $masks)) {
                     $acl->{$deleteMethod}($index, $field);
                 }
             }
