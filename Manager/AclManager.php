@@ -188,7 +188,6 @@ class AclManager
      * @param null|string                         $field
      *
      * @return bool
-     * @throws \Exception
      */
     public function userIsGranted($user, $attributes, $classOrObject = null, $field = null)
     {
