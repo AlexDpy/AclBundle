@@ -27,8 +27,8 @@ class SecurityExtension extends \Twig_Extension
         return [
             new \Twig_SimpleFunction('is_granted', [$this->aclManager, 'isGranted']),
             new \Twig_SimpleFunction('isGranted', [$this->aclManager, 'isGranted']),
-            new \Twig_SimpleFunction('isGrantedAgainstClass', [$this->aclManager, 'isGrantedAgainstClass']),
-            new \Twig_SimpleFunction('isGrantedAgainstObject', [$this->aclManager, 'isGrantedAgainstObject']),
+            new \Twig_SimpleFunction('isGrantedOnClass', [$this->aclManager, 'isGrantedOnClass']),
+            new \Twig_SimpleFunction('isGrantedOnObject', [$this->aclManager, 'isGrantedOnObject']),
             new \Twig_SimpleFunction('roleIsGranted', [$this->aclManager, 'roleIsGranted']),
         ];
     }

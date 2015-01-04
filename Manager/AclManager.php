@@ -88,9 +88,9 @@ class AclManager
         if (null === $classOrObject) {
             return $this->authorizationChecker->isGranted($attributes);
         } elseif (is_string($classOrObject)) {
-            return $this->isGrantedAgainstClass($attributes, $classOrObject, $field);
+            return $this->isGrantedOnClass($attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->isGrantedAgainstObject($attributes, $classOrObject, $field);
+            return $this->isGrantedOnObject($attributes, $classOrObject, $field);
         }
 
         return false;
@@ -103,17 +103,12 @@ class AclManager
      *
      * @return bool
      */
-    public function isGrantedAgainstClass($attributes, $class, $field = null)
+    public function isGrantedOnClass($attributes, $class, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $object = null === $field
-            ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
-            : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
-
-        return $this->authorizationChecker->isGranted($attributes, $object);
+        return $this->authorizationChecker->isGranted(
+            $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_CLASS, $class, $field)
+        );
     }
 
     /**
@@ -123,13 +118,12 @@ class AclManager
      *
      * @return bool
      */
-    public function isGrantedAgainstObject($attributes, $object, $field = null)
+    public function isGrantedOnObject($attributes, $object, $field = null)
     {
-        if (null !== $field) {
-            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
-        }
-
-        return $this->authorizationChecker->isGranted($attributes, $object);
+        return $this->authorizationChecker->isGranted(
+            $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_OBJECT, $object, $field)
+        );
     }
 
     /**
@@ -145,9 +139,9 @@ class AclManager
         if (null === $classOrObject) {
             return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->roleIsGrantedAgainstClass($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedOnClass($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->roleIsGrantedAgainstObject($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
+            return $this->roleIsGrantedOnObject($this->getRoleToken($role), (array) $attributes, $classOrObject, $field);
         }
 
         return false;
@@ -161,17 +155,13 @@ class AclManager
      *
      * @return bool
      */
-    public function roleIsGrantedAgainstClass($role, $attributes, $class, $field = null)
+    public function roleIsGrantedOnClass($role, $attributes, $class, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $object = null === $field
-            ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
-            : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
-
-        return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $object);
+        return $this->accessDecisionManager->decide(
+            $this->getRoleToken($role),
+            (array) $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_CLASS, $class, $field)
+        );
     }
 
     /**
@@ -182,13 +172,13 @@ class AclManager
      *
      * @return bool
      */
-    public function roleIsGrantedAgainstObject($role, $attributes, $object, $field = null)
+    public function roleIsGrantedOnObject($role, $attributes, $object, $field = null)
     {
-        if (null !== $field) {
-            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
-        }
-
-        return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $object);
+        return $this->accessDecisionManager->decide(
+            $this->getRoleToken($role),
+            (array) $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_OBJECT, $object, $field)
+        );
     }
 
     /**
@@ -205,9 +195,9 @@ class AclManager
         if (null === $classOrObject) {
             return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $classOrObject);
         } elseif (is_string($classOrObject)) {
-            return $this->userIsGrantedAgainstClass($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedOnClass($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
         } elseif (is_object($classOrObject)) {
-            return $this->userIsGrantedAgainstObject($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
+            return $this->userIsGrantedOnObject($this->getUserToken($user), (array) $attributes, $classOrObject, $field);
         }
 
         return false;
@@ -221,17 +211,13 @@ class AclManager
      *
      * @return bool
      */
-    public function userIsGrantedAgainstClass($user, $attributes, $class, $field = null)
+    public function userIsGrantedOnClass($user, $attributes, $class, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $object = null === $field
-            ? new ObjectIdentity(self::ACE_TYPE_CLASS, $class)
-            : new FieldVote(new ObjectIdentity(self::ACE_TYPE_CLASS, $class), $field);
-
-        return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $object);
+        return $this->accessDecisionManager->decide(
+            $this->getUserToken($user),
+            (array) $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_CLASS, $class, $field)
+        );
     }
 
     /**
@@ -242,13 +228,13 @@ class AclManager
      *
      * @return bool
      */
-    public function userIsGrantedAgainstObject($user, $attributes, $object, $field = null)
+    public function userIsGrantedOnObject($user, $attributes, $object, $field = null)
     {
-        if (null !== $field) {
-            $object = new FieldVote(ObjectIdentity::fromDomainObject($object), $field);
-        }
-
-        return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $object);
+        return $this->accessDecisionManager->decide(
+            $this->getUserToken($user),
+            (array) $attributes,
+            $this->getObjectToSecure(self::ACE_TYPE_OBJECT, $object, $field)
+        );
     }
 
     /**
@@ -257,18 +243,15 @@ class AclManager
      * @param string|Role   $role
      * @param null|string   $field
      */
-    public function grantRoleAgainstClass($permissions, $class, $role, $field = null)
+    public function grantRoleOnClass($permissions, $class, $role, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $objectIdentity = new ObjectIdentity(self::ACE_TYPE_CLASS, $class);
-        $securityIdentity = $this->getRoleSecurityIdentity($role);
-
-        $acl = $this->findOrCreateAcl($objectIdentity);
-
-        $this->insertAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_CLASS, $field);
+        $this->insertAces(
+            $this->findOrCreateAcl($this->getObjectIdentity(self::ACE_TYPE_CLASS, $class)),
+            $this->getRoleSecurityIdentity($role),
+            $permissions,
+            self::ACE_TYPE_CLASS,
+            $field
+        );
     }
 
     /**
@@ -277,14 +260,15 @@ class AclManager
      * @param string|Role  $role
      * @param null|string  $field
      */
-    public function grantRoleAgainstObject($permissions, $object, $role, $field = null)
+    public function grantRoleOnObject($permissions, $object, $role, $field = null)
     {
-        $objectIdentity = ObjectIdentity::fromDomainObject($object);
-        $securityIdentity = $this->getRoleSecurityIdentity($role);
-
-        $acl = $this->findOrCreateAcl($objectIdentity);
-
-        $this->insertAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        $this->insertAces(
+            $this->findOrCreateAcl($this->getObjectIdentity(self::ACE_TYPE_OBJECT, $object)),
+            $this->getRoleSecurityIdentity($role),
+            $permissions,
+            self::ACE_TYPE_OBJECT,
+            $field
+        );
     }
 
     /**
@@ -293,18 +277,15 @@ class AclManager
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function grantUserAgainstClass($permissions, $class, UserInterface $user = null, $field = null)
+    public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $objectIdentity = new ObjectIdentity(self::ACE_TYPE_CLASS, $class);
-        $securityIdentity = $this->getUserSecurityIdentity($user);
-
-        $acl = $this->findOrCreateAcl($objectIdentity);
-
-        $this->insertAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_CLASS, $field);
+        $this->insertAces(
+            $this->findOrCreateAcl($this->getObjectIdentity(self::ACE_TYPE_CLASS, $class)),
+            $this->getUserSecurityIdentity($user),
+            $permissions,
+            self::ACE_TYPE_CLASS,
+            $field
+        );
     }
 
     /**
@@ -313,14 +294,15 @@ class AclManager
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function grantUserAgainstObject($permissions, $object, UserInterface $user = null, $field = null)
+    public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        $objectIdentity = ObjectIdentity::fromDomainObject($object);
-        $securityIdentity = $this->getUserSecurityIdentity($user);
-
-        $acl = $this->findOrCreateAcl($objectIdentity);
-
-        $this->insertAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        $this->insertAces(
+            $this->findOrCreateAcl($this->getObjectIdentity(self::ACE_TYPE_OBJECT, $object)),
+            $this->getUserSecurityIdentity($user),
+            $permissions,
+            self::ACE_TYPE_OBJECT,
+            $field
+        );
     }
 
     /**
@@ -329,17 +311,10 @@ class AclManager
      * @param string|Role   $role
      * @param null|string   $field
      */
-    public function revokeRoleAgainstClass($permissions, $class, $role, $field = null)
+    public function revokeRoleOnClass($permissions, $class, $role, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $objectIdentity = new ObjectIdentity(self::ACE_TYPE_CLASS, $class);
-        $securityIdentity = $this->getRoleSecurityIdentity($role);
-
-        if (null !== $acl = $this->findAcl($objectIdentity)) {
-            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_CLASS, $field);
+        if (null !== $acl = $this->findAcl($this->getObjectIdentity(self::ACE_TYPE_CLASS, $class))) {
+            $this->deleteAces($acl, $this->getRoleSecurityIdentity($role), $permissions, self::ACE_TYPE_CLASS, $field);
         }
     }
 
@@ -349,13 +324,10 @@ class AclManager
      * @param string|Role  $role
      * @param null|string  $field
      */
-    public function revokeRoleAgainstObject($permissions, $object, $role, $field = null)
+    public function revokeRoleOnObject($permissions, $object, $role, $field = null)
     {
-        $objectIdentity = ObjectIdentity::fromDomainObject($object);
-        $securityIdentity = $this->getRoleSecurityIdentity($role);
-
-        if (null !== $acl = $this->findAcl($objectIdentity)) {
-            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        if (null !== $acl = $this->findAcl($this->getObjectIdentity(self::ACE_TYPE_OBJECT, $object))) {
+            $this->deleteAces($acl, $this->getRoleSecurityIdentity($role), $permissions, self::ACE_TYPE_OBJECT, $field);
         }
     }
 
@@ -365,17 +337,10 @@ class AclManager
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function revokeUserAgainstClass($permissions, $class, UserInterface $user = null, $field = null)
+    public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $objectIdentity = new ObjectIdentity(self::ACE_TYPE_CLASS, $class);
-        $securityIdentity = $this->getUserSecurityIdentity($user);
-
-        if (null !== $acl = $this->findAcl($objectIdentity)) {
-            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_CLASS, $field);
+        if (null !== $acl = $this->findAcl($this->getObjectIdentity(self::ACE_TYPE_CLASS, $class))) {
+            $this->deleteAces($acl, $this->getUserSecurityIdentity($user), $permissions, self::ACE_TYPE_CLASS, $field);
         }
     }
 
@@ -385,14 +350,27 @@ class AclManager
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function revokeUserAgainstObject($permissions, $object, UserInterface $user = null, $field = null)
+    public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        $objectIdentity = ObjectIdentity::fromDomainObject($object);
-        $securityIdentity = $this->getUserSecurityIdentity($user);
-
-        if (null !== $acl = $this->findAcl($objectIdentity)) {
-            $this->deleteAces($acl, $securityIdentity, $permissions, self::ACE_TYPE_OBJECT, $field);
+        if (null !== $acl = $this->findAcl($this->getObjectIdentity(self::ACE_TYPE_OBJECT, $object))) {
+            $this->deleteAces($acl, $this->getUserSecurityIdentity($user), $permissions, self::ACE_TYPE_OBJECT, $field);
         }
+    }
+
+    /**
+     * @param string|object $class
+     */
+    public function deleteAclForClass($class)
+    {
+        $this->aclProvider->deleteAcl($this->getObjectIdentity(self::ACE_TYPE_CLASS, $class));
+    }
+
+    /**
+     * @param object $object
+     */
+    public function deleteAclForObject($object)
+    {
+        $this->aclProvider->deleteAcl($this->getObjectIdentity(self::ACE_TYPE_OBJECT, $object));
     }
 
     /**
@@ -566,5 +544,46 @@ class AclManager
         } else {
             return new FakeUserToken(new User($user, ''));
         }
+    }
+
+    /**
+     * @param string        $type
+     * @param string|object $classOrObject
+     * @param null|string   $field
+     *
+     * @return ObjectIdentity|FieldVote
+     */
+    protected function getObjectToSecure($type, $classOrObject, $field = null)
+    {
+        $objectIdentity = $this->getObjectIdentity($type, $classOrObject);
+
+        if (null === $field) {
+            return $objectIdentity;
+        }
+
+        return new FieldVote($objectIdentity, $field);
+    }
+
+    /**
+     * @param string        $type
+     * @param string|object $classOrObject
+     *
+     * @return ObjectIdentity
+     * @throws \Exception
+     */
+    protected function getObjectIdentity($type, $classOrObject)
+    {
+        switch ($type) {
+            case self::ACE_TYPE_CLASS:
+                if (is_object($classOrObject)) {
+                    $classOrObject = get_class($classOrObject);
+                }
+
+                return new ObjectIdentity($type, $classOrObject);
+            case self::ACE_TYPE_OBJECT:
+                return ObjectIdentity::fromDomainObject($classOrObject);
+        }
+
+        throw new \Exception('$type must be class or object');
     }
 }
