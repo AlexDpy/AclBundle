@@ -2,6 +2,7 @@
 
 namespace AlexDpy\AclBundle\Manager;
 
+use AlexDpy\AclBundle\Exception\AceTypeException;
 use AlexDpy\AclBundle\Exception\UnresolvedMaskException;
 use AlexDpy\AclBundle\Token\FakeRoleToken;
 use AlexDpy\AclBundle\Token\FakeUserToken;
@@ -583,6 +584,6 @@ class AclManager
                 return ObjectIdentity::fromDomainObject($classOrObject);
         }
 
-        throw new \Exception('$type must be class or object');
+        throw new AceTypeException($type);
     }
 }
