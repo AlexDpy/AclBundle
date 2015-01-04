@@ -569,7 +569,7 @@ class AclManager
      * @param string|object $classOrObject
      *
      * @return ObjectIdentity
-     * @throws \Exception
+     * @throws AceTypeException
      */
     protected function getObjectIdentity($type, $classOrObject)
     {
