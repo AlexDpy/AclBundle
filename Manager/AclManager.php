@@ -78,6 +78,14 @@ class AclManager
     }
 
     /**
+     * @param PermissionMapInterface $permissionMap
+     */
+    public function setPermissionMap(PermissionMapInterface $permissionMap)
+    {
+        $this->permissionMap = $permissionMap;
+    }
+
+    /**
      * @param string|array       $attributes
      * @param null|string|object $classOrObject
      * @param null|string        $field
@@ -384,13 +392,13 @@ class AclManager
     {
         $permissions = (array) $permissions;
         foreach ($permissions as $permission) {
-            $mask = min($this->resolveMasks($permission));
-
-            if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
-                if (null === $field) {
-                    $acl->{'insert' . ucfirst($type) . 'Ace'}($securityIdentity, $mask);
-                } else {
-                    $acl->{'insert' . ucfirst($type) . 'FieldAce'}($field, $securityIdentity, $mask);
+            foreach ($this->resolveMasks($permission) as $mask) {
+                if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
+                    if (null === $field) {
+                        $acl->{'insert' . ucfirst($type) . 'Ace'}($securityIdentity, $mask);
+                    } else {
+                        $acl->{'insert' . ucfirst($type) . 'FieldAce'}($field, $securityIdentity, $mask);
+                    }
                 }
             }
         }
@@ -485,8 +493,6 @@ class AclManager
      */
     protected function resolveMasks($permission, $object = null)
     {
-        $permission = strtoupper($permission);
-
         if (!$this->permissionMap->contains($permission)) {
             throw UnresolvedMaskException::nonExistentPermission($permission);
         }
