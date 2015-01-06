@@ -392,13 +392,13 @@ class AclManager
     {
         $permissions = (array) $permissions;
         foreach ($permissions as $permission) {
-            foreach ($this->resolveMasks($permission) as $mask) {
-                if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
-                    if (null === $field) {
-                        $acl->{'insert' . ucfirst($type) . 'Ace'}($securityIdentity, $mask);
-                    } else {
-                        $acl->{'insert' . ucfirst($type) . 'FieldAce'}($field, $securityIdentity, $mask);
-                    }
+            $mask = min($this->resolveMasks($permission));
+
+            if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
+                if (null === $field) {
+                    $acl->{'insert' . ucfirst($type) . 'Ace'}($securityIdentity, $mask);
+                } else {
+                    $acl->{'insert' . ucfirst($type) . 'FieldAce'}($field, $securityIdentity, $mask);
                 }
             }
         }
