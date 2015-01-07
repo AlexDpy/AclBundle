@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 interface AclCheckerInterface
 {
     /**
-     * @param string|array       $attributes
+     * @param mixed              $attributes
      * @param null|string|object $classOrObject
      * @param null|string        $field
      *
@@ -18,7 +18,7 @@ interface AclCheckerInterface
     public function isGranted($attributes, $classOrObject = null, $field = null);
 
     /**
-     * @param string|array  $attributes
+     * @param mixed         $attributes
      * @param string|object $class
      * @param null|string   $field
      *
@@ -37,7 +37,7 @@ interface AclCheckerInterface
 
     /**
      * @param string|array|RoleInterface|TokenInterface $role
-     * @param string|array                              $attributes
+     * @param mixed                                     $attributes
      * @param null|string|object                        $classOrObject
      * @param null|string                               $field
      *
@@ -47,7 +47,7 @@ interface AclCheckerInterface
 
     /**
      * @param string|array|RoleInterface|TokenInterface $role
-     * @param string|array                              $attributes
+     * @param mixed                                     $attributes
      * @param string|object                             $class
      * @param null|string                               $field
      *
@@ -57,7 +57,7 @@ interface AclCheckerInterface
 
     /**
      * @param string|array|RoleInterface|TokenInterface $role
-     * @param string|array                              $attributes
+     * @param mixed                                     $attributes
      * @param object                                    $object
      * @param null|string                               $field
      *
@@ -67,7 +67,7 @@ interface AclCheckerInterface
 
     /**
      * @param TokenInterface|UserInterface|string $user
-     * @param string|array                        $attributes
+     * @param mixed                               $attributes
      * @param null|string|object                  $classOrObject
      * @param null|string                         $field
      *
@@ -77,7 +77,7 @@ interface AclCheckerInterface
 
     /**
      * @param TokenInterface|UserInterface|string $user
-     * @param string|array                        $attributes
+     * @param mixed                               $attributes
      * @param string|object                       $class
      * @param null|string                         $field
      *
@@ -87,7 +87,7 @@ interface AclCheckerInterface
 
     /**
      * @param TokenInterface|UserInterface|string $user
-     * @param string|array                        $attributes
+     * @param mixed                               $attributes
      * @param object                              $object
      * @param null|string                         $field
      *

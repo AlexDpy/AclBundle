@@ -8,23 +8,23 @@ use Symfony\Component\Security\Core\User\UserInterface;
 interface AclPersisterInterface
 {
     /**
-     * @param string|array  $permissions
-     * @param string|object $class
-     * @param string|Role   $role
-     * @param null|string   $field
+     * @param string|string[] $permissions
+     * @param string|object   $class
+     * @param string|Role     $role
+     * @param null|string     $field
      */
     public function grantRoleOnClass($permissions, $class, $role, $field = null);
 
     /**
-     * @param string|array $permissions
-     * @param object       $object
-     * @param string|Role  $role
-     * @param null|string  $field
+     * @param string|string[] $permissions
+     * @param object          $object
+     * @param string|Role     $role
+     * @param null|string     $field
      */
     public function grantRoleOnObject($permissions, $object, $role, $field = null);
 
     /**
-     * @param string|array       $permissions
+     * @param string|string[]    $permissions
      * @param string|object      $class
      * @param null|UserInterface $user
      * @param null|string        $field
@@ -32,7 +32,7 @@ interface AclPersisterInterface
     public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
 
     /**
-     * @param string|array       $permissions
+     * @param string|string[]    $permissions
      * @param object             $object
      * @param null|UserInterface $user
      * @param null|string        $field
@@ -40,23 +40,23 @@ interface AclPersisterInterface
     public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null);
 
     /**
-     * @param string|array  $permissions
-     * @param string|object $class
-     * @param string|Role   $role
-     * @param null|string   $field
+     * @param string|string[] $permissions
+     * @param string|object   $class
+     * @param string|Role     $role
+     * @param null|string     $field
      */
     public function revokeRoleOnClass($permissions, $class, $role, $field = null);
 
     /**
-     * @param string|array $permissions
-     * @param object       $object
-     * @param string|Role  $role
-     * @param null|string  $field
+     * @param string|string[] $permissions
+     * @param object          $object
+     * @param string|Role     $role
+     * @param null|string     $field
      */
     public function revokeRoleOnObject($permissions, $object, $role, $field = null);
 
     /**
-     * @param string|array       $permissions
+     * @param string|string[]    $permissions
      * @param string|object      $class
      * @param null|UserInterface $user
      * @param null|string        $field
@@ -64,7 +64,7 @@ interface AclPersisterInterface
     public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
 
     /**
-     * @param string|array       $permissions
+     * @param string|string[]    $permissions
      * @param object             $object
      * @param null|UserInterface $user
      * @param null|string        $field

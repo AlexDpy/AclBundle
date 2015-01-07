@@ -171,7 +171,7 @@ class AclPersister implements AclPersisterInterface
     /**
      * @param MutableAclInterface       $acl
      * @param SecurityIdentityInterface $securityIdentity
-     * @param string|array              $permissions
+     * @param string|string[]           $permissions
      * @param string                    $type
      * @param null|string               $field
      */
@@ -196,7 +196,7 @@ class AclPersister implements AclPersisterInterface
     /**
      * @param MutableAclInterface       $acl
      * @param SecurityIdentityInterface $securityIdentity
-     * @param string|array              $permissions
+     * @param string|string[]           $permissions
      * @param string                    $type
      * @param null|string               $field
      */
@@ -274,8 +274,8 @@ class AclPersister implements AclPersisterInterface
      * @param string      $permission
      * @param null|object $object
      *
-     * @return array
-     * @throws UnresolvedMaskException
+     * @return int[]
+     * @throws UnresolvedMaskException When the permissionMap does not contain the permission or does not support the permission/object combination
      */
     protected function resolveMasks($permission, $object = null)
     {

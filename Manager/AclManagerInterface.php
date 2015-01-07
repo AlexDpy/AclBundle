@@ -15,7 +15,7 @@ interface AclManagerInterface
      * @param string|object $classOrObject
      *
      * @return ObjectIdentityInterface
-     * @throws OidTypeException
+     * @throws OidTypeException            When the $type is not supported
      */
     public function getObjectIdentity($type, $classOrObject);
 }
