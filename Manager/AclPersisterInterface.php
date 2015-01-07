@@ -8,9 +8,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
 interface AclPersisterInterface
 {
     /**
-     * @param object $object
+     * @param string|array  $permissions
+     * @param string|object $class
+     * @param string|Role   $role
+     * @param null|string   $field
      */
-    public function deleteAclForObject($object);
+    public function grantRoleOnClass($permissions, $class, $role, $field = null);
 
     /**
      * @param string|array $permissions
@@ -21,17 +24,20 @@ interface AclPersisterInterface
     public function grantRoleOnObject($permissions, $object, $role, $field = null);
 
     /**
-     * @param string|object $class
-     */
-    public function deleteAclForClass($class);
-
-    /**
      * @param string|array       $permissions
      * @param string|object      $class
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
+    public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
+
+    /**
+     * @param string|array       $permissions
+     * @param object             $object
+     * @param null|UserInterface $user
+     * @param null|string        $field
+     */
+    public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null);
 
     /**
      * @param string|array  $permissions
@@ -51,19 +57,11 @@ interface AclPersisterInterface
 
     /**
      * @param string|array       $permissions
-     * @param object             $object
+     * @param string|object      $class
      * @param null|UserInterface $user
      * @param null|string        $field
      */
-    public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null);
-
-    /**
-     * @param string|array  $permissions
-     * @param string|object $class
-     * @param string|Role   $role
-     * @param null|string   $field
-     */
-    public function grantRoleOnClass($permissions, $class, $role, $field = null);
+    public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
 
     /**
      * @param string|array       $permissions
@@ -74,10 +72,12 @@ interface AclPersisterInterface
     public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null);
 
     /**
-     * @param string|array       $permissions
-     * @param string|object      $class
-     * @param null|UserInterface $user
-     * @param null|string        $field
+     * @param string|object $class
      */
-    public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null);
+    public function deleteAclForClass($class);
+
+    /**
+     * @param object $object
+     */
+    public function deleteAclForObject($object);
 }
