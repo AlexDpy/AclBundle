@@ -1,15 +1,24 @@
 services:
     alex_dpy_acl.acl_manager:
         class: AlexDpy\AclBundle\Manager\AclManager
+
+    alex_dpy_acl.acl_persister:
+        class: AlexDpy\AclBundle\Manager\AclPersister
         arguments:
+            - @alex_dpy_acl.acl_manager
             - @alex_dpy_acl.permission_map
-            - @security.authorization_checker
             - @security.token_storage
             - @security.acl.provider
+
+    alex_dpy_acl.acl_checker:
+        class: AlexDpy\AclBundle\Manager\AclChecker
+        arguments:
+            - @alex_dpy_acl.acl_manager
+            - @security.authorization_checker
             - @security.access.decision_manager
 
     alex_dpy_acl.twig.security_extension:
         class: AlexDpy\AclBundle\Twig\SecurityExtension
-        arguments: [ @alex_dpy_acl.acl_manager ]
+        arguments: [ @alex_dpy_acl.acl_checker ]
         tags:
             - { name: twig.extension }
