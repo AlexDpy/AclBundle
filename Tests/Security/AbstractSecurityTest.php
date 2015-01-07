@@ -13,6 +13,7 @@ use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\User;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 class AbstractSecurityTest extends WebTestCase
 {
@@ -55,7 +56,6 @@ class AbstractSecurityTest extends WebTestCase
     {
         $this->client = static::createClient();
         $this->container = $this->client->getContainer();
-        $this->authenticateUser('user1');
 
         $this->connection = $this->container->get('database_connection');
 
@@ -63,6 +63,14 @@ class AbstractSecurityTest extends WebTestCase
             $this->markTestSkipped('This test requires SQLite support in your environment.');
         }
 
+        $this->createDB();
+
+        $this->aclManager = $this->container->get('alex_dpy_acl.acl_manager');
+        $this->aclChecker = $this->container->get('alex_dpy_acl.acl_checker');
+    }
+
+    protected function createDB()
+    {
         $this->tableNames = array(
             'oid_table_name' => 'acl_object_identities',
             'oid_ancestors_table_name' => 'acl_object_identity_ancestors',
@@ -76,29 +84,47 @@ class AbstractSecurityTest extends WebTestCase
         foreach ($schema->toSql($this->connection->getDatabasePlatform()) as $sql) {
             $this->connection->exec($sql);
         }
-
-        $this->aclManager = $this->container->get('alex_dpy_acl.acl_manager');
-        $this->aclChecker = $this->container->get('alex_dpy_acl.acl_checker');
-
     }
 
-    protected function generateSidForUser($username)
+    protected function cleanDB()
     {
-        return new UserSecurityIdentity($username, 'Symfony\Component\Security\Core\User\User');
+        foreach ($this->tableNames as $table) {
+            $this->connection->query(sprintf('DROP TABLE %s;', $table));
+        }
+
+        $this->createDB();
     }
 
-    protected function authenticateUser($username, array $roles = array())
+    /**
+     * @param string      $username
+     * @param array $roles
+     *
+     * @return UserInterface
+     */
+    protected function generateUser($username, Array $roles = ['ROLE_USER'])
     {
-        $this->token = $this->createToken($username, $roles);
+        return new User($username, null, $roles);
+    }
+
+    /**
+     * @param UserInterface $user
+     */
+    protected function authenticateUser(UserInterface $user)
+    {
+        $this->token = $this->createToken($user);
         $this->container->get('security.context')->setToken($this->token);
+        $this->container->get('security.token_storage')->setToken($this->token);
         $this->assertTrue($this->token->isAuthenticated());
     }
 
-    protected function createToken($username, array $roles = array())
+    /**
+     * @param UserInterface $user
+     *
+     * @return UsernamePasswordToken
+     */
+    protected function createToken(UserInterface $user)
     {
-        $roles = array_merge(array('ROLE_USER'), $roles);
-        $user = new User($username, '', $roles);
-        $token = new UsernamePasswordToken($user, '', 'main', $roles);
+        $token = new UsernamePasswordToken($user, '', 'main', $user->getRoles());
         return $token;
     }
 
@@ -106,11 +132,5 @@ class AbstractSecurityTest extends WebTestCase
     {
         $this->assertNotNull($this->client);
         $this->assertNotNull($this->container);
-    }
-
-    public function testIfSecurityContextLoads()
-    {
-        $securityContext = $this->container->get('security.context');
-        $this->assertNotNull($securityContext->getToken());
     }
 }
