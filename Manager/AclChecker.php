@@ -16,9 +16,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class AclChecker implements AclCheckerInterface
 {
     /**
-     * @var AclManagerInterface
+     * @var AclIdentifierInterface
      */
-    protected $aclManager;
+    protected $aclIdentifier;
     
     /**
      * @var AuthorizationCheckerInterface $authorizationChecker
@@ -31,15 +31,16 @@ class AclChecker implements AclCheckerInterface
     protected $accessDecisionManager;
 
     /**
+     * @param AclIdentifierInterface         $aclIdentifier
      * @param AuthorizationCheckerInterface  $authorizationChecker
      * @param AccessDecisionManagerInterface $accessDecisionManager
      */
     public function __construct(
-        AclManagerInterface $aclManager,
+        AclIdentifierInterface $aclIdentifier,
         AuthorizationCheckerInterface $authorizationChecker,
         AccessDecisionManagerInterface $accessDecisionManager
     ) {
-        $this->aclManager = $aclManager;
+        $this->aclIdentifier = $aclIdentifier;
         $this->authorizationChecker = $authorizationChecker;
         $this->accessDecisionManager = $accessDecisionManager;
     }
@@ -67,7 +68,7 @@ class AclChecker implements AclCheckerInterface
     {
         return $this->authorizationChecker->isGranted(
             $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_CLASS, $class, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_CLASS, $class, $field)
         );
     }
 
@@ -78,7 +79,7 @@ class AclChecker implements AclCheckerInterface
     {
         return $this->authorizationChecker->isGranted(
             $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_OBJECT, $object, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_OBJECT, $object, $field)
         );
     }
 
@@ -106,7 +107,7 @@ class AclChecker implements AclCheckerInterface
         return $this->accessDecisionManager->decide(
             $this->getRoleToken($role),
             (array) $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_CLASS, $class, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_CLASS, $class, $field)
         );
     }
 
@@ -118,7 +119,7 @@ class AclChecker implements AclCheckerInterface
         return $this->accessDecisionManager->decide(
             $this->getRoleToken($role),
             (array) $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_OBJECT, $object, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_OBJECT, $object, $field)
         );
     }
 
@@ -146,7 +147,7 @@ class AclChecker implements AclCheckerInterface
         return $this->accessDecisionManager->decide(
             $this->getUserToken($user),
             (array) $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_CLASS, $class, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_CLASS, $class, $field)
         );
     }
 
@@ -158,7 +159,7 @@ class AclChecker implements AclCheckerInterface
         return $this->accessDecisionManager->decide(
             $this->getUserToken($user),
             (array) $attributes,
-            $this->getObjectToSecure(AclManagerInterface::OID_TYPE_OBJECT, $object, $field)
+            $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_OBJECT, $object, $field)
         );
     }
 
@@ -171,7 +172,7 @@ class AclChecker implements AclCheckerInterface
      */
     protected function getObjectToSecure($type, $classOrObject, $field = null)
     {
-        $objectIdentity = $this->aclManager->getObjectIdentity($type, $classOrObject);
+        $objectIdentity = $this->aclIdentifier->getObjectIdentity($type, $classOrObject);
 
         if (null === $field) {
             return $objectIdentity;
