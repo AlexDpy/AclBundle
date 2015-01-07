@@ -5,7 +5,7 @@ namespace AlexDpy\AclBundle\Manager;
 use AlexDpy\AclBundle\Exception\OidTypeException;
 use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
 
-interface OidTypeInterface
+interface AclIdentifierInterface
 {
     const OID_TYPE_CLASS = 'class';
     const OID_TYPE_OBJECT = 'object';
