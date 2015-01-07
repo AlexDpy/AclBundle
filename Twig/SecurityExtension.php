@@ -2,21 +2,21 @@
 
 namespace AlexDpy\AclBundle\Twig;
 
-use AlexDpy\AclBundle\Manager\AclManager;
+use AlexDpy\AclBundle\Manager\AclCheckerInterface;
 
 class SecurityExtension extends \Twig_Extension
 {
     /**
-     * @var AclManager
+     * @var AclCheckerInterface
      */
-    protected $aclManager;
+    protected $aclChecker;
 
     /**
-     * @param AclManager $aclManager
+     * @param AclCheckerInterface $aclChecker
      */
-    public function __construct(AclManager $aclManager)
+    public function __construct(AclCheckerInterface $aclChecker)
     {
-        $this->aclManager = $aclManager;
+        $this->aclChecker = $aclChecker;
     }
 
     /**
@@ -25,11 +25,11 @@ class SecurityExtension extends \Twig_Extension
     public function getFunctions()
     {
         return [
-            new \Twig_SimpleFunction('is_granted', [$this->aclManager, 'isGranted']),
-            new \Twig_SimpleFunction('isGranted', [$this->aclManager, 'isGranted']),
-            new \Twig_SimpleFunction('isGrantedOnClass', [$this->aclManager, 'isGrantedOnClass']),
-            new \Twig_SimpleFunction('isGrantedOnObject', [$this->aclManager, 'isGrantedOnObject']),
-            new \Twig_SimpleFunction('roleIsGranted', [$this->aclManager, 'roleIsGranted']),
+            new \Twig_SimpleFunction('is_granted', [$this->aclChecker, 'isGranted']),
+            new \Twig_SimpleFunction('isGranted', [$this->aclChecker, 'isGranted']),
+            new \Twig_SimpleFunction('isGrantedOnClass', [$this->aclChecker, 'isGrantedOnClass']),
+            new \Twig_SimpleFunction('isGrantedOnObject', [$this->aclChecker, 'isGrantedOnObject']),
+            new \Twig_SimpleFunction('roleIsGranted', [$this->aclChecker, 'roleIsGranted']),
         ];
     }
     /**
