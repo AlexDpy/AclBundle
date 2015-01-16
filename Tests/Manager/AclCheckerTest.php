@@ -6,7 +6,7 @@ use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
 use AlexDpy\AclBundle\Tests\Model\BarObject;
 use AlexDpy\AclBundle\Tests\Model\FooObject;
 
-class AclManagerTest extends AbstractSecurityTest
+class AclCheckerTest extends AbstractSecurityTest
 {
     const ROLE_USER = 'ROLE_USER';
     const ROLE_ADMIN = 'ROLE_ADMIN';
@@ -19,8 +19,8 @@ class AclManagerTest extends AbstractSecurityTest
     public function setUp()
     {
         parent::setUp();
-        $this->fooClass = 'AlexDpy\\AclBundle\\Tests\\Model\\FooObject';
-        $this->barClass = 'AlexDpy\\AclBundle\\Tests\\Model\\BarObject';
+        $this->fooClass = 'AlexDpy\AclBundle\Tests\Model\FooObject';
+        $this->barClass = 'AlexDpy\AclBundle\Tests\Model\BarObject';
     }
 
     public function tearDown()
@@ -403,5 +403,73 @@ class AclManagerTest extends AbstractSecurityTest
         $this->assertTrue($this->aclChecker->userIsGrantedOnClass($bob, 'EDIT', $b));
         $this->assertFalse($this->aclChecker->userIsGrantedOnClass($mallory, 'EDIT', $b));
         $this->assertFalse($this->aclChecker->userIsGrantedOnClass($alice, 'EDIT', $b));
+    }
+
+    public function test_user_is_granted_on_object()
+    {
+        $a = new FooObject(uniqid());
+        $b = new BarObject(uniqid());
+
+        $alice = $this->generateUser('alice');
+        $bob = $this->generateUser('bob');
+        $mallory = $this->generateUser('mallory');
+
+        $this->aclManager->grantUserOnObject(['VIEW', 'EDIT'], $a, $alice);
+        $this->aclManager->grantUserOnObject('MASTER', $a, $bob);
+        $this->aclManager->grantUserOnObject('EDIT', $b, $bob);
+
+        $this->aclManager->grantUserOnClass('DELETE', $b, $bob);
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($alice, ['VIEW', 'EDIT'], $a));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, ['VIEW', 'EDIT'], $a));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($alice, 'DELETE', $a));
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'MASTER', $a));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'MASTER', $a));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($alice, 'MASTER', $a));
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'EDIT', $b));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'EDIT', $b));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($alice, 'EDIT', $b));
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'DELETE', $b));
+    }
+
+    public function test_user_is_granted_field_on_object()
+    {
+        $a = new FooObject(uniqid());
+        $b = new BarObject(uniqid());
+        $b2 = new BarObject(uniqid());
+
+        $alice = $this->generateUser('alice');
+        $bob = $this->generateUser('bob');
+        $mallory = $this->generateUser('mallory');
+
+        $this->aclManager->grantUserOnClass('VIEW', $this->barClass, $bob, 'bar');
+
+        $this->aclManager->grantUserOnObject(['VIEW', 'EDIT'], $a, $alice, 'securedField');
+        $this->aclManager->grantUserOnObject('MASTER', $a, $bob, 'foo');
+        $this->aclManager->grantUserOnObject('EDIT', $b, $bob, 'securedField');
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($alice, 'VIEW', $a, 'securedField'));
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($alice, 'EDIT', $a, 'securedField'));
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($alice, ['VIEW', 'EDIT'], $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($alice, 'MASTER', $a, 'foo'));
+
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($bob, 'VIEW', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($bob, 'EDIT', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($bob, ['EDIT', 'VIEW'], $a, 'securedField'));
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'MASTER', $a, 'foo'));
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'EDIT', $b, 'securedField'));
+
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'VIEW', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'EDIT', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, ['EDIT', 'VIEW'], $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'MASTER', $a, 'foo'));
+        $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'EDIT', $b, 'securedField'));
+
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'VIEW', $b2, 'bar'));
+        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'VIEW', $b, 'bar'));
     }
 }
