@@ -57,7 +57,7 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     public function grantRoleOnClass($permissions, $class, $role, $field = null)
     {
         $this->insertAces(
-            $this->findOrCreateAcl($this->$aclManager->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
+            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
             $this->getRoleSecurityIdentity($role),
             $permissions,
             AclIdentifierInterface::OID_TYPE_CLASS,
