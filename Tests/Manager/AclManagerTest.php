@@ -192,6 +192,59 @@ class AclManagerTest extends AbstractSecurityTest
         $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'MASTER', $b));
     }
 
+    public function test_role_is_granted_field_on_class_with_class()
+    {
+        $this->aclManager->grantRoleOnClass(['VIEW', 'EDIT'], $this->fooClass, self::ROLE_USER, 'securedField');
+        $this->aclManager->grantRoleOnClass('MASTER', $this->fooClass, self::ROLE_ADMIN, 'foo');
+        $this->aclManager->grantRoleOnClass('EDIT', $this->barClass, self::ROLE_ADMIN, 'securedField');
+
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass, 'securedField'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $this->fooClass, 'securedField'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, ['VIEW', 'EDIT'], $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'MASTER', $this->fooClass, 'foo'));
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'EDIT', $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, ['EDIT', 'VIEW'], $this->fooClass, 'securedField'));
+
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'MASTER', $this->fooClass, 'foo'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'EDIT', $this->barClass, 'securedField'));
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'VIEW', $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'EDIT', $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, ['EDIT', 'VIEW'], $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'MASTER', $this->fooClass, 'foo'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'EDIT', $this->barClass, 'securedField'));
+    }
+
+    public function test_role_is_granted_field_on_class_with_object()
+    {
+        $a = new FooObject(uniqid());
+        $b = new BarObject(uniqid());
+
+        $this->aclManager->grantRoleOnClass(['VIEW', 'EDIT'], $a, self::ROLE_USER, 'securedField');
+        $this->aclManager->grantRoleOnClass('MASTER', $a, self::ROLE_ADMIN, 'foo');
+        $this->aclManager->grantRoleOnClass('EDIT', $b, self::ROLE_ADMIN, 'securedField');
+
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $a, 'securedField'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $a, 'securedField'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, ['VIEW', 'EDIT'], $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'MASTER', $a, 'foo'));
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'EDIT', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, ['EDIT', 'VIEW'], $a, 'securedField'));
+
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'MASTER', $a, 'foo'));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'EDIT', $b, 'securedField'));
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'VIEW', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'EDIT', $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, ['EDIT', 'VIEW'], $a, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'MASTER', $a, 'foo'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'EDIT', $b, 'securedField'));
+    }
+
     public function test_user_is_granted_field_on_class_with_class()
     {
         $alice = $this->generateUser('alice');
