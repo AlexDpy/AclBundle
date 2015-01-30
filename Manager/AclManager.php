@@ -217,14 +217,29 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
         foreach ($permissions as $permission) {
             $masks = $this->resolveMasks($permission);
 
-            foreach ($acl->{$getMethod}($field) as $index => $ace) {
-                if ($securityIdentity->equals($ace->getSecurityIdentity()) && in_array($ace->getMask(), $masks)) {
-                    $acl->{$deleteMethod}($index, $field);
-                }
-            }
+            $this->processDeleteAces($acl, $securityIdentity, $masks, $getMethod, $deleteMethod, $field);
         }
 
         $this->aclProvider->updateAcl($acl);
+    }
+
+    /**
+     * @param MutableAclInterface       $acl
+     * @param SecurityIdentityInterface $securityIdentity
+     * @param integer[]                 $masks
+     * @param string                    $getMethod
+     * @param string                    $deleteMethod
+     * @param string|null               $field
+     */
+    protected function processDeleteAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, array $masks, $getMethod, $deleteMethod, $field) {
+        foreach ($acl->{$getMethod}($field) as $index => $ace) {
+            if ($securityIdentity->equals($ace->getSecurityIdentity()) && in_array($ace->getMask(), $masks)) {
+                $acl->{$deleteMethod}($index, $field);
+                $this->processDeleteAces($acl, $securityIdentity, $masks, $getMethod, $deleteMethod, $field);
+
+                return;
+            }
+        }
     }
 
     /**
