@@ -59,28 +59,33 @@ class AbstractSecurityTest extends WebTestCase
 
         $this->connection = $this->container->get('database_connection');
 
+        $this->tableNames = array(
+            'entry_table_name' => 'acl_entries',
+            'sid_table_name' => 'acl_security_identities',
+            'class_table_name' => 'acl_classes',
+            'oid_ancestors_table_name' => 'acl_object_identity_ancestors',
+            'oid_table_name' => 'acl_object_identities',
+        );
+
         if (!class_exists('PDO') || !in_array('sqlite', \PDO::getAvailableDrivers())) {
             $this->markTestSkipped('This test requires SQLite support in your environment.');
         }
 
+        $this->cleanDB();
         $this->createDB();
 
         $this->aclManager = $this->container->get('alex_dpy_acl.acl_manager');
         $this->aclChecker = $this->container->get('alex_dpy_acl.acl_checker');
     }
 
+    protected function tearDown()
+    {
+        $this->cleanDB();
+    }
+
     protected function createDB()
     {
-        $this->tableNames = array(
-            'oid_table_name' => 'acl_object_identities',
-            'oid_ancestors_table_name' => 'acl_object_identity_ancestors',
-            'class_table_name' => 'acl_classes',
-            'sid_table_name' => 'acl_security_identities',
-            'entry_table_name' => 'acl_entries',
-        );
-
         $schema = new Schema($this->tableNames);
-
         foreach ($schema->toSql($this->connection->getDatabasePlatform()) as $sql) {
             $this->connection->exec($sql);
         }
@@ -89,10 +94,8 @@ class AbstractSecurityTest extends WebTestCase
     protected function cleanDB()
     {
         foreach ($this->tableNames as $table) {
-            $this->connection->query(sprintf('DROP TABLE %s;', $table));
+            $this->connection->query(sprintf('DROP TABLE IF EXISTS %s;', $table));
         }
-
-        $this->createDB();
     }
 
     /**
@@ -112,7 +115,6 @@ class AbstractSecurityTest extends WebTestCase
     protected function authenticateUser(UserInterface $user)
     {
         $this->token = $this->createToken($user);
-        $this->container->get('security.context')->setToken($this->token);
         $this->container->get('security.token_storage')->setToken($this->token);
         $this->assertTrue($this->token->isAuthenticated());
     }
@@ -125,6 +127,7 @@ class AbstractSecurityTest extends WebTestCase
     protected function createToken(UserInterface $user)
     {
         $token = new UsernamePasswordToken($user, '', 'main', $user->getRoles());
+
         return $token;
     }
 

@@ -48,5 +48,5 @@ doctrine:
 #                port: 3306
 #                dbname: test_acl
 #                user: root
-#                password: root
+#                password:
 #                charset: "UTF8"

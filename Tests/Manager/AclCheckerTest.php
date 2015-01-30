@@ -5,6 +5,12 @@ namespace AlexDpy\AclBundle\AclManager\Tests\Manager;
 use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
 use AlexDpy\AclBundle\Tests\Model\BarObject;
 use AlexDpy\AclBundle\Tests\Model\FooObject;
+use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
+use Symfony\Component\Security\Acl\Model\AclProviderInterface;
+use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
+use Symfony\Component\Security\Acl\Voter\FieldVote;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 class AclCheckerTest extends AbstractSecurityTest
 {
@@ -21,12 +27,6 @@ class AclCheckerTest extends AbstractSecurityTest
         parent::setUp();
         $this->fooClass = 'AlexDpy\AclBundle\Tests\Model\FooObject';
         $this->barClass = 'AlexDpy\AclBundle\Tests\Model\BarObject';
-    }
-
-    public function tearDown()
-    {
-        parent::tearDown();
-        $this->cleanDB();
     }
 
     public function test_is_granted_on_class_with_object()
@@ -445,8 +445,6 @@ class AclCheckerTest extends AbstractSecurityTest
         $bob = $this->generateUser('bob');
         $mallory = $this->generateUser('mallory');
 
-        $this->aclManager->grantUserOnClass('VIEW', $this->barClass, $bob, 'bar');
-
         $this->aclManager->grantUserOnObject(['VIEW', 'EDIT'], $a, $alice, 'securedField');
         $this->aclManager->grantUserOnObject('MASTER', $a, $bob, 'foo');
         $this->aclManager->grantUserOnObject('EDIT', $b, $bob, 'securedField');
@@ -468,8 +466,5 @@ class AclCheckerTest extends AbstractSecurityTest
         $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, ['EDIT', 'VIEW'], $a, 'securedField'));
         $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'MASTER', $a, 'foo'));
         $this->assertFalse($this->aclChecker->userIsGrantedOnObject($mallory, 'EDIT', $b, 'securedField'));
-
-        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'VIEW', $b2, 'bar'));
-        $this->assertTrue($this->aclChecker->userIsGrantedOnObject($bob, 'VIEW', $b, 'bar'));
     }
 }
