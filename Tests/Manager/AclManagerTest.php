@@ -2,6 +2,7 @@
 
 namespace AlexDpy\AclBundle\AclManager\Tests\Manager;
 
+use AlexDpy\AclBundle\Tests\Model\BarObject;
 use AlexDpy\AclBundle\Tests\Model\FooObject;
 use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
 use Symfony\Component\Security\Acl\Dbal\AclProvider;
@@ -253,5 +254,38 @@ class AclManagerTest extends AbstractSecurityTest
 
         $this->aclManager->revokeUserOnObject('DELETE', $fooObject, $alice, 'securedField');
         $this->assertFalse($this->aclChecker->userIsGrantedOnObject($alice, 'DELETE', $fooObject, 'securedField'));
+    }
+
+    public function test_delete_acl_for_class()
+    {
+        $this->aclManager->grantRoleOnClass('VIEW', $this->fooClass, self::ROLE_USER);
+        $this->aclManager->grantRoleOnClass('VIEW', $this->fooClass, self::ROLE_USER, 'securedField');
+        $this->aclManager->grantRoleOnClass('VIEW', $this->fooClass, self::ROLE_ADMIN);
+        $this->aclManager->grantRoleOnClass('VIEW', $this->barClass, self::ROLE_ADMIN);
+
+        $this->aclManager->deleteAclForClass($this->fooClass);
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $this->fooClass));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $this->barClass));
+    }
+
+    public function test_delete_acl_for_object()
+    {
+        $fooObject = new FooObject(uniqid());
+        $barObject = new BarObject(uniqid());
+
+        $this->aclManager->grantRoleOnClass('VIEW', $fooObject, self::ROLE_USER);
+        $this->aclManager->grantRoleOnClass('VIEW', $fooObject, self::ROLE_USER, 'securedField');
+        $this->aclManager->grantRoleOnClass('VIEW', $fooObject, self::ROLE_ADMIN);
+        $this->aclManager->grantRoleOnClass('VIEW', $barObject, self::ROLE_ADMIN);
+
+        $this->aclManager->deleteAclForClass($fooObject);
+
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $fooObject));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $fooObject, 'securedField'));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $fooObject));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $barObject));
     }
 }
