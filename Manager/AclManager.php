@@ -3,7 +3,6 @@
 namespace AlexDpy\AclBundle\Manager;
 
 use AlexDpy\AclBundle\Exception\OidTypeException;
-use AlexDpy\AclBundle\Exception\UnresolvedMaskException;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
@@ -13,7 +12,7 @@ use Symfony\Component\Security\Acl\Model\MutableAclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
 use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
 use Symfony\Component\Security\Acl\Model\SecurityIdentityInterface;
-use Symfony\Component\Security\Acl\Permission\PermissionMapInterface;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -32,21 +31,13 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     protected $tokenStorage;
 
     /**
-     * @var PermissionMapInterface
-     */
-    protected $permissionMap;
-
-    /**
-     * @param PermissionMapInterface      $permissionMap
      * @param TokenStorageInterface       $tokenStorage
      * @param MutableAclProviderInterface $aclProvider
      */
     public function __construct(
-        PermissionMapInterface $permissionMap,
         TokenStorageInterface $tokenStorage,
         MutableAclProviderInterface $aclProvider
     ) {
-        $this->permissionMap = $permissionMap;
         $this->tokenStorage = $tokenStorage;
         $this->aclProvider = $aclProvider;
     }
@@ -56,21 +47,20 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function grantRoleOnClass($permissions, $class, $role, $field = null)
     {
-        $this->insertAces(
-            $this->findOrCreateAcl($this->$aclManager->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
+        $this->grant(
+            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
             $this->getRoleSecurityIdentity($role),
             $permissions,
             AclIdentifierInterface::OID_TYPE_CLASS,
             $field
         );
     }
-
     /**
      * {@inheritdoc}
      */
     public function grantRoleOnObject($permissions, $object, $role, $field = null)
     {
-        $this->insertAces(
+        $this->grant(
             $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
             $this->getRoleSecurityIdentity($role),
             $permissions,
@@ -78,13 +68,12 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
             $field
         );
     }
-
     /**
      * {@inheritdoc}
      */
     public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        $this->insertAces(
+        $this->grant(
             $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
             $this->getUserSecurityIdentity($user),
             $permissions,
@@ -92,13 +81,12 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
             $field
         );
     }
-
     /**
      * {@inheritdoc}
      */
     public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        $this->insertAces(
+        $this->grant(
             $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
             $this->getUserSecurityIdentity($user),
             $permissions,
@@ -106,44 +94,40 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
             $field
         );
     }
-
     /**
      * {@inheritdoc}
      */
     public function revokeRoleOnClass($permissions, $class, $role, $field = null)
     {
         if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
-            $this->deleteAces($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
+            $this->revoke($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
         }
     }
-
     /**
      * {@inheritdoc}
      */
     public function revokeRoleOnObject($permissions, $object, $role, $field = null)
     {
         if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
-            $this->deleteAces($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
+            $this->revoke($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
         }
     }
-
     /**
      * {@inheritdoc}
      */
     public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
         if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
-            $this->deleteAces($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
+            $this->revoke($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
         }
     }
-
     /**
      * {@inheritdoc}
      */
     public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
         if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
-            $this->deleteAces($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
+            $this->revoke($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
         }
     }
 
@@ -189,18 +173,36 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      * @param string                    $type
      * @param null|string               $field
      */
-    protected function insertAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
+    protected function grant(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
     {
-        $permissions = (array) $permissions;
-        foreach ($permissions as $permission) {
-            $mask = min($this->resolveMasks($permission));
+        $index = false;
+        $oldMask = 0;
+        foreach ($acl->{$this->resolveAceMethod('get', $type, $field)}($field) as $k => $ace) {
+            if ($securityIdentity->equals($ace->getSecurityIdentity())) {
+                $index = $k;
+                $oldMask = $ace->getMask();
 
-            if (!$this->hasAce($acl, $securityIdentity, $mask, $type, $field)) {
-                if (null === $field) {
-                    $acl->{'insert' . ucfirst($type) . 'Ace'}($securityIdentity, $mask);
-                } else {
-                    $acl->{'insert' . ucfirst($type) . 'FieldAce'}($field, $securityIdentity, $mask);
-                }
+                continue;
+            }
+        }
+
+        $maskBuilder = new MaskBuilder($oldMask);
+
+        foreach ((array) $permissions as $permission) {
+            $maskBuilder->add($permission);
+        }
+
+        if (false === $index) {
+            if (null === $field) {
+                $acl->{$this->resolveAceMethod('insert', $type, $field)}($securityIdentity, $maskBuilder->get());
+            } else {
+                $acl->{$this->resolveAceMethod('insert', $type, $field)}($field, $securityIdentity, $maskBuilder->get());
+            }
+        } else {
+            if (null === $field) {
+                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $maskBuilder->get());
+            } else {
+                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $field, $maskBuilder->get());
             }
         }
 
@@ -214,24 +216,57 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      * @param string                    $type
      * @param null|string               $field
      */
-    protected function deleteAces(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
+    protected function revoke(MutableAclInterface $acl, SecurityIdentityInterface $securityIdentity, $permissions, $type, $field = null)
     {
-        $type = ucfirst($type);
-        $getMethod = null === $field ? 'get' . $type . 'Aces' : 'get' . $type . 'FieldAces';
-        $deleteMethod = null === $field ? 'delete' . $type . 'Ace' : 'delete' . $type . 'FieldAce';
+        $index = false;
+        $oldMask = 0;
+        foreach ($acl->{$this->resolveAceMethod('get', $type, $field)}($field) as $k => $ace) {
+            if ($securityIdentity->equals($ace->getSecurityIdentity())) {
+                $index = $k;
+                $oldMask = $ace->getMask();
+                continue;
+            }
+        }
 
-        $permissions = (array) $permissions;
-        foreach ($permissions as $permission) {
-            $masks = $this->resolveMasks($permission);
+        if (false !== $index) {
+            $maskBuilder = new MaskBuilder($oldMask);
 
-            foreach ($acl->{$getMethod}($field) as $index => $ace) {
-                if ($securityIdentity->equals($ace->getSecurityIdentity()) && in_array($ace->getMask(), $masks)) {
-                    $acl->{$deleteMethod}($index, $field);
-                }
+            foreach ((array) $permissions as $permission) {
+                $maskBuilder->remove($permission);
+            }
+
+            if (null === $field) {
+                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $maskBuilder->get());
+            } else {
+                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $field, $maskBuilder->get());
             }
         }
 
         $this->aclProvider->updateAcl($acl);
+    }
+
+    /**
+     * @param string      $method get|insert|update|delete
+     * @param string      $type
+     * @param null|string $field
+     *
+     * @return string
+     */
+    protected function resolveAceMethod($method, $type, $field = null)
+    {
+        $result = $method . ucfirst($type);
+
+        if (null !== $field) {
+            $result .= 'Field';
+        }
+
+        $result .= 'Ace';
+
+        if ('get' === $method) {
+            $result .= 's';
+        }
+
+        return $result;
     }
 
     /**
@@ -282,48 +317,5 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     protected function getRoleSecurityIdentity($role)
     {
         return new RoleSecurityIdentity($role);
-    }
-
-    /**
-     * @param string      $permission
-     * @param null|object $object
-     *
-     * @return int[]
-     * @throws UnresolvedMaskException When the permissionMap does not contain the permission or does not support the permission/object combination
-     */
-    protected function resolveMasks($permission, $object = null)
-    {
-        if (!$this->permissionMap->contains($permission)) {
-            throw UnresolvedMaskException::nonExistentPermission($permission);
-        }
-
-        if (null === $masks = $this->permissionMap->getMasks($permission, $object)) {
-            throw UnresolvedMaskException::nonSupportedPermission($permission, $object);
-        }
-
-        return $masks;
-    }
-
-    /**
-     * @param AclInterface              $acl
-     * @param SecurityIdentityInterface $securityIdentity
-     * @param int                       $mask
-     * @param string                    $type
-     * @param null|string               $field
-     *
-     * @return bool
-     */
-    protected function hasAce(AclInterface $acl, SecurityIdentityInterface $securityIdentity, $mask, $type, $field = null)
-    {
-        $type = ucfirst($type);
-        $method = null === $field ? 'get' . $type . 'Aces' : 'get' . $type . 'FieldAces';
-
-        foreach ($acl->{$method}($field) as $ace) {
-            if ($mask === $ace->getMask() && $securityIdentity->equals($ace->getSecurityIdentity())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
