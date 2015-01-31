@@ -2,7 +2,20 @@
 
 namespace AlexDpy\AclBundle\AclManager\Tests\Manager;
 
+use AlexDpy\AclBundle\Tests\Model\FooObject;
 use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
+use Symfony\Component\Security\Acl\Dbal\AclProvider;
+use Symfony\Component\Security\Acl\Dbal\MutableAclProvider;
+use Symfony\Component\Security\Acl\Domain\Entry;
+use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
+use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
+use Symfony\Component\Security\Acl\Exception\ConcurrentModificationException;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
+use Symfony\Component\Security\Acl\Permission\PermissionMapInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Authorization\AuthorizationChecker;
+use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
 
 class AclManagerTest extends AbstractSecurityTest
 {
@@ -20,28 +33,53 @@ class AclManagerTest extends AbstractSecurityTest
         $this->barClass = 'AlexDpy\AclBundle\Tests\Model\BarObject';
     }
 
-    public function tearDown()
+    public function test_grant_on_class_then_grant_on_object()
     {
-        parent::tearDown();
-        $this->cleanDB();
+        $fooObject = new FooObject(uniqid());
+
+        try {
+            $this->aclManager->grantRoleOnClass('VIEW', $fooObject, self::ROLE_USER, 'securedField');
+            $this->aclManager->grantRoleOnObject('VIEW', $fooObject, self::ROLE_USER, 'securedField');
+        } catch (ConcurrentModificationException $e) {
+            $this->fail();
+        }
     }
 
-    public function test_revoke_role_on_class()
+    /*public function test_grant_on_object_then_grant_on_class()
     {
-//        $this->aclManager->grantRoleOnClass(['VIEW', 'EDIT'], $this->fooClass, self::ROLE_USER);
-//        $this->aclManager->grantRoleOnClass('MASTER', $this->barClass, self::ROLE_ADMIN);
-//
-//        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass));
-//        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $this->fooClass));
-//        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->barClass));
-//        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, ['VIEW', 'EDIT'], $this->fooClass));
-//
-//        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'MASTER', $this->barClass));
-//        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, 'VIEW', $this->fooClass));
-//        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_ADMIN, ['EDIT', 'VIEW', 'DELETE'], $this->barClass));
-//
-//        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'VIEW', $this->fooClass));
-//        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'EDIT', $this->fooClass));
-//        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_SUPER_ADMIN, 'MASTER', $this->barClass));
+        $fooObject = new FooObject(uniqid());
+
+        try {
+            $this->aclManager->grantRoleOnObject('VIEW', $fooObject, self::ROLE_USER, 'securedField');
+            $this->aclManager->grantRoleOnClass('VIEW', $fooObject, self::ROLE_USER, 'securedField');
+        } catch (ConcurrentModificationException $e) {
+            $this->fail();
+        }
+    }*/
+
+    public function test_revoke_role()
+    {
+        $this->aclManager->grantRoleOnClass(['VIEW', 'EDIT', 'CREATE'], $this->fooClass, self::ROLE_USER);
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $this->fooClass));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'CREATE', $this->fooClass));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'DELETE', $this->fooClass));
+
+        $this->aclManager->revokeRoleOnClass('VIEW', $this->fooClass, self::ROLE_USER);
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass));
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $this->fooClass));
+
+        $this->aclManager->revokeRoleOnClass('EDIT', $this->fooClass, self::ROLE_USER);
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'VIEW', $this->fooClass));
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'EDIT', $this->fooClass));
+
+        $this->aclManager->revokeRoleOnClass('CREATE', $this->fooClass, self::ROLE_USER);
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'CREATE', $this->fooClass));
+
+        $this->aclManager->grantRoleOnClass('DELETE', $this->fooClass, self::ROLE_USER);
+        $this->assertTrue($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'DELETE', $this->fooClass));
+
+        $this->aclManager->revokeRoleOnClass('DELETE', $this->fooClass, self::ROLE_USER);
+        $this->assertFalse($this->aclChecker->roleIsGrantedOnClass(self::ROLE_USER, 'DELETE', $this->fooClass));
     }
 }
