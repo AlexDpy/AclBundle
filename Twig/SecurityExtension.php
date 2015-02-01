@@ -40,4 +40,3 @@ class SecurityExtension extends \Twig_Extension
         return 'alex_dpy_acl_security';
     }
 }
- 

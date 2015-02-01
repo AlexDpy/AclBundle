@@ -14,4 +14,3 @@ class FakeRoleToken extends AbstractToken
         return '';
     }
 }
- 

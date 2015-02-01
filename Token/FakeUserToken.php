@@ -24,4 +24,3 @@ class FakeUserToken extends AbstractToken
         return '';
     }
 }
- 

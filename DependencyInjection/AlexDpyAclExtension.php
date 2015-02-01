@@ -23,4 +23,3 @@ class AlexDpyAclExtension extends Extension
         $container->setAlias('alex_dpy_acl.permission_map', $config['permission_map_id']);
     }
 }
- 
