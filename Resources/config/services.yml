@@ -4,6 +4,8 @@ services:
         arguments:
             - @security.token_storage
             - @security.acl.provider
+        calls:
+            - [ setPermissionMap, [ @alex_dpy_acl.permission_map ] ]
 
     alex_dpy_acl.acl_checker:
         class: AlexDpy\AclBundle\Manager\AclChecker

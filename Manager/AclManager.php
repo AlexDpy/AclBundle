@@ -3,6 +3,8 @@
 namespace AlexDpy\AclBundle\Manager;
 
 use AlexDpy\AclBundle\Exception\OidTypeException;
+use AlexDpy\AclBundle\Permission\PermissionMapInterface;
+use AlexDpy\AclBundle\Permission\PermissionMapWrapper;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
@@ -13,6 +15,7 @@ use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
 use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
 use Symfony\Component\Security\Acl\Model\SecurityIdentityInterface;
 use Symfony\Component\Security\Acl\Permission\MaskBuilder;
+use Symfony\Component\Security\Acl\Permission\PermissionMapInterface as SymfonyPermissionMapInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -31,6 +34,11 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     protected $tokenStorage;
 
     /**
+     * @var PermissionMapInterface
+     */
+    protected $permissionMap;
+
+    /**
      * @param TokenStorageInterface       $tokenStorage
      * @param MutableAclProviderInterface $aclProvider
      */
@@ -40,6 +48,18 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     ) {
         $this->tokenStorage = $tokenStorage;
         $this->aclProvider = $aclProvider;
+    }
+
+    /**
+     * @param SymfonyPermissionMapInterface $permissionMap
+     */
+    public function setPermissionMap(SymfonyPermissionMapInterface $permissionMap)
+    {
+        if (!$permissionMap instanceof PermissionMapInterface) {
+            $permissionMap = new PermissionMapWrapper($permissionMap);
+        }
+
+        $this->permissionMap = $permissionMap;
     }
 
     /**
@@ -186,7 +206,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
             }
         }
 
-        $maskBuilder = new MaskBuilder($oldMask);
+        $maskBuilder = $this->permissionMap->getMaskBuilder();
+        $maskBuilder->set($oldMask);
 
         foreach ((array) $permissions as $permission) {
             $maskBuilder->add($permission);
@@ -194,13 +215,13 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
 
         if (false === $index) {
             if (null === $field) {
-                $acl->{$this->resolveAceMethod('insert', $type, $field)}($securityIdentity, $maskBuilder->get());
+                $acl->{$this->resolveAceMethod('insert', $type)}($securityIdentity, $maskBuilder->get());
             } else {
                 $acl->{$this->resolveAceMethod('insert', $type, $field)}($field, $securityIdentity, $maskBuilder->get());
             }
         } else {
             if (null === $field) {
-                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $maskBuilder->get());
+                $acl->{$this->resolveAceMethod('update', $type)}($index, $maskBuilder->get());
             } else {
                 $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $field, $maskBuilder->get());
             }
@@ -224,19 +245,21 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
             if ($securityIdentity->equals($ace->getSecurityIdentity())) {
                 $index = $k;
                 $oldMask = $ace->getMask();
+
                 continue;
             }
         }
 
         if (false !== $index) {
-            $maskBuilder = new MaskBuilder($oldMask);
+            $maskBuilder = $this->permissionMap->getMaskBuilder();
+            $maskBuilder->set($oldMask);
 
             foreach ((array) $permissions as $permission) {
                 $maskBuilder->remove($permission);
             }
 
             if (null === $field) {
-                $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $maskBuilder->get());
+                $acl->{$this->resolveAceMethod('update', $type)}($index, $maskBuilder->get());
             } else {
                 $acl->{$this->resolveAceMethod('update', $type, $field)}($index, $field, $maskBuilder->get());
             }
