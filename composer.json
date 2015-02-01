@@ -25,6 +25,9 @@
     "autoload": {
         "psr-4": { "AlexDpy\\AclBundle\\": "" }
     },
+    "autoload-dev": {
+        "psr-4": { "AlexDpy\\AclBundle\\Tests\\": "" }
+    },
     "extra": {
         "branch-alias": {
             "dev-master": "1.0.x-dev"
