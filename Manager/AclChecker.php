@@ -48,22 +48,6 @@ class AclChecker implements AclCheckerInterface
     /**
      * {@inheritdoc}
      */
-    public function isGranted($attributes, $classOrObject = null, $field = null)
-    {
-        if (null === $classOrObject) {
-            return $this->authorizationChecker->isGranted($attributes);
-        } elseif (is_string($classOrObject)) {
-            return $this->isGrantedOnClass($attributes, $classOrObject, $field);
-        } elseif (is_object($classOrObject)) {
-            return $this->isGrantedOnObject($attributes, $classOrObject, $field);
-        }
-
-        return false;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function isGrantedOnClass($attributes, $class, $field = null)
     {
         return $this->authorizationChecker->isGranted(
@@ -81,22 +65,6 @@ class AclChecker implements AclCheckerInterface
             $attributes,
             $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_OBJECT, $object, $field)
         );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function roleIsGranted($role, $attributes, $classOrObject = null, $field = null)
-    {
-        if (null === $classOrObject) {
-            return $this->accessDecisionManager->decide($this->getRoleToken($role), (array) $attributes, $classOrObject);
-        } elseif (is_string($classOrObject)) {
-            return $this->roleIsGrantedOnClass($this->getRoleToken($role), $attributes, $classOrObject, $field);
-        } elseif (is_object($classOrObject)) {
-            return $this->roleIsGrantedOnObject($this->getRoleToken($role), $attributes, $classOrObject, $field);
-        }
-
-        return false;
     }
 
     /**
@@ -121,22 +89,6 @@ class AclChecker implements AclCheckerInterface
             (array) $attributes,
             $this->getObjectToSecure(AclIdentifierInterface::OID_TYPE_OBJECT, $object, $field)
         );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function userIsGranted($user, $attributes, $classOrObject = null, $field = null)
-    {
-        if (null === $classOrObject) {
-            return $this->accessDecisionManager->decide($this->getUserToken($user), (array) $attributes, $classOrObject);
-        } elseif (is_string($classOrObject)) {
-            return $this->userIsGrantedOnClass($this->getUserToken($user), $attributes, $classOrObject, $field);
-        } elseif (is_object($classOrObject)) {
-            return $this->userIsGrantedOnObject($this->getUserToken($user), $attributes, $classOrObject, $field);
-        }
-
-        return false;
     }
 
     /**
