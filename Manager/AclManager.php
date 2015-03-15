@@ -2,36 +2,28 @@
 
 namespace AlexDpy\AclBundle\Manager;
 
-use AlexDpy\AclBundle\Exception\OidTypeException;
 use AlexDpy\AclBundle\Permission\PermissionMapInterface;
 use AlexDpy\AclBundle\Permission\PermissionMapWrapper;
-use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
-use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
-use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
 use Symfony\Component\Security\Acl\Exception\AclNotFoundException;
 use Symfony\Component\Security\Acl\Model\AclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
 use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
 use Symfony\Component\Security\Acl\Model\SecurityIdentityInterface;
-use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Security\Acl\Permission\PermissionMapInterface as SymfonyPermissionMapInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\Util\ClassUtils;
 
-class AclManager implements AclManagerInterface, AclIdentifierInterface
+class AclManager implements AclManagerInterface
 {
+    /**
+     * @var AclIdentifierInterface
+     */
+    protected $aclIdentifier;
+
     /**
      * @var MutableAclProviderInterface $aclProvider
      */
     protected $aclProvider;
-
-    /**
-     * @var TokenStorageInterface $tokenStorage
-     */
-    protected $tokenStorage;
 
     /**
      * @var PermissionMapInterface
@@ -39,14 +31,14 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     protected $permissionMap;
 
     /**
-     * @param TokenStorageInterface       $tokenStorage
+     * @param AclIdentifierInterface      $aclIdentifier
      * @param MutableAclProviderInterface $aclProvider
      */
     public function __construct(
-        TokenStorageInterface $tokenStorage,
+        AclIdentifierInterface $aclIdentifier,
         MutableAclProviderInterface $aclProvider
     ) {
-        $this->tokenStorage = $tokenStorage;
+        $this->aclIdentifier = $aclIdentifier;
         $this->aclProvider = $aclProvider;
     }
 
@@ -68,8 +60,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     public function grantRoleOnClass($permissions, $class, $role, $field = null)
     {
         $this->grant(
-            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
-            $this->getRoleSecurityIdentity($role),
+            $this->findOrCreateAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
+            $this->aclIdentifier->getRoleSecurityIdentity($role),
             $permissions,
             AclIdentifierInterface::OID_TYPE_CLASS,
             $field
@@ -81,8 +73,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     public function grantRoleOnObject($permissions, $object, $role, $field = null)
     {
         $this->grant(
-            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
-            $this->getRoleSecurityIdentity($role),
+            $this->findOrCreateAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
+            $this->aclIdentifier->getRoleSecurityIdentity($role),
             $permissions,
             AclIdentifierInterface::OID_TYPE_OBJECT,
             $field
@@ -94,8 +86,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
         $this->grant(
-            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
-            $this->getUserSecurityIdentity($user),
+            $this->findOrCreateAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class)),
+            $this->aclIdentifier->getUserSecurityIdentity($user),
             $permissions,
             AclIdentifierInterface::OID_TYPE_CLASS,
             $field
@@ -107,8 +99,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
     public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
         $this->grant(
-            $this->findOrCreateAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
-            $this->getUserSecurityIdentity($user),
+            $this->findOrCreateAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object)),
+            $this->aclIdentifier->getUserSecurityIdentity($user),
             $permissions,
             AclIdentifierInterface::OID_TYPE_OBJECT,
             $field
@@ -119,8 +111,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function revokeRoleOnClass($permissions, $class, $role, $field = null)
     {
-        if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
-            $this->revoke($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
+        if (null !== $acl = $this->findAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
+            $this->revoke($acl, $this->aclIdentifier->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
         }
     }
     /**
@@ -128,8 +120,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function revokeRoleOnObject($permissions, $object, $role, $field = null)
     {
-        if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
-            $this->revoke($acl, $this->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
+        if (null !== $acl = $this->findAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
+            $this->revoke($acl, $this->aclIdentifier->getRoleSecurityIdentity($role), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
         }
     }
     /**
@@ -137,8 +129,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
-            $this->revoke($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
+        if (null !== $acl = $this->findAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class))) {
+            $this->revoke($acl, $this->aclIdentifier->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_CLASS, $field);
         }
     }
     /**
@@ -146,8 +138,8 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        if (null !== $acl = $this->findAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
-            $this->revoke($acl, $this->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
+        if (null !== $acl = $this->findAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object))) {
+            $this->revoke($acl, $this->aclIdentifier->getUserSecurityIdentity($user), $permissions, AclIdentifierInterface::OID_TYPE_OBJECT, $field);
         }
     }
 
@@ -156,7 +148,7 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function deleteAclForClass($class)
     {
-        $this->aclProvider->deleteAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class));
+        $this->aclProvider->deleteAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_CLASS, $class));
     }
 
     /**
@@ -164,26 +156,7 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
      */
     public function deleteAclForObject($object)
     {
-        $this->aclProvider->deleteAcl($this->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getObjectIdentity($type, $classOrObject)
-    {
-        switch ($type) {
-            case self::OID_TYPE_CLASS:
-                if (is_object($classOrObject)) {
-                    $classOrObject = ClassUtils::getRealClass($classOrObject);
-                }
-
-                return new ObjectIdentity($type, $classOrObject);
-            case self::OID_TYPE_OBJECT:
-                return ObjectIdentity::fromDomainObject($classOrObject);
-        }
-
-        throw new OidTypeException($type);
+        $this->aclProvider->deleteAcl($this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object));
     }
 
     /**
@@ -318,27 +291,5 @@ class AclManager implements AclManagerInterface, AclIdentifierInterface
         } catch (AclNotFoundException $e) {
             return null;
         }
-    }
-
-    /**
-     * @param null|UserInterface $user
-     *
-     * @return UserSecurityIdentity
-     */
-    protected function getUserSecurityIdentity(UserInterface $user = null)
-    {
-        return null === $user
-            ? UserSecurityIdentity::fromToken($this->tokenStorage->getToken())
-            : UserSecurityIdentity::fromAccount($user);
-    }
-
-    /**
-     * @param string|Role $role a Role instance, or its string representation
-     *
-     * @return RoleSecurityIdentity
-     */
-    protected function getRoleSecurityIdentity($role)
-    {
-        return new RoleSecurityIdentity($role);
     }
 }

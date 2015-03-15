@@ -3,13 +3,15 @@
 namespace AlexDpy\AclBundle\Tests\Security;
 
 use AlexDpy\AclBundle\Manager\AclCheckerInterface;
+use AlexDpy\AclBundle\Manager\AclFilter;
 use AlexDpy\AclBundle\Manager\AclManagerInterface;
-use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Tools\Setup;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Client;
 use Symfony\Component\Security\Acl\Dbal\Schema;
-use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\User;
@@ -38,6 +40,11 @@ class AbstractSecurityTest extends WebTestCase
     protected $connection;
 
     /**
+     * @var EntityManager
+     */
+    protected $em;
+
+    /**
      * @var AclManagerInterface
      */
     protected $aclManager;
@@ -46,6 +53,11 @@ class AbstractSecurityTest extends WebTestCase
      * @var AclCheckerInterface
      */
     protected $aclChecker;
+
+    /**
+     * @var AclFilter
+     */
+    protected $aclFilter;
 
     /**
      * @var array
@@ -58,6 +70,9 @@ class AbstractSecurityTest extends WebTestCase
         $this->container = $this->client->getContainer();
 
         $this->connection = $this->container->get('database_connection');
+
+        $config = Setup::createAnnotationMetadataConfiguration([__DIR__ . '/../Model'], true);
+        $this->em = EntityManager::create($this->connection, $config);
 
         $this->tableNames = array(
             'entry_table_name' => 'acl_entries',
@@ -76,6 +91,7 @@ class AbstractSecurityTest extends WebTestCase
 
         $this->aclManager = $this->container->get('alex_dpy_acl.acl_manager');
         $this->aclChecker = $this->container->get('alex_dpy_acl.acl_checker');
+        $this->aclFilter = $this->container->get('alex_dpy_acl.acl_filter');
     }
 
     protected function tearDown()
@@ -104,7 +120,7 @@ class AbstractSecurityTest extends WebTestCase
      *
      * @return UserInterface
      */
-    protected function generateUser($username, Array $roles = ['ROLE_USER'])
+    protected function generateUser($username, array $roles = ['ROLE_USER'])
     {
         return new User($username, null, $roles);
     }
