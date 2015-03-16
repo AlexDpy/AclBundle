@@ -131,7 +131,7 @@ class AbstractSecurityTest extends WebTestCase
     protected function authenticateUser(UserInterface $user)
     {
         $this->token = $this->createToken($user);
-        $this->container->get('security.token_storage')->setToken($this->token);
+        $this->container->get('security.context')->setToken($this->token);
         $this->assertTrue($this->token->isAuthenticated());
     }
 
