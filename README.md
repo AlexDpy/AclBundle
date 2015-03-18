@@ -1,44 +1,13 @@
-Installation
-============
+# AclBundle
 
-Step 1: Download the Bundle
----------------------------
+This bundle simplifies the usage of the ACL component in Symfony2
 
-Open a command console, enter your project directory and execute the
-following command to download the latest stable version of this bundle:
+Travis CI : [![Build Status](https://secure.travis-ci.org/AlexDpy/AclBundle.png?branch=master)](http://travis-ci.org/AlexDpy/AclBundle)
 
-```bash
-$ composer require <package-name> "~1"
-```
+### Documentation
 
-This command requires you to have Composer installed globally, as explained
-in the [installation chapter](https://getcomposer.org/doc/00-intro.md)
-of the Composer documentation.
+[Documentation](Resources/doc/index.md)
 
-Step 2: Enable the Bundle
--------------------------
+### License
 
-Then, enable the bundle by adding the following line in the `app/AppKernel.php`
-file of your project:
-
-```php
-<?php
-// app/AppKernel.php
-
-// ...
-class AppKernel extends Kernel
-{
-    public function registerBundles()
-    {
-        $bundles = array(
-            // ...
-
-            new <vendor>\<bundle-name>\<bundle-long-name>(),
-        );
-
-        // ...
-    }
-
-    // ...
-}
-```
+[MIT](Resources/meta/LICENSE)
