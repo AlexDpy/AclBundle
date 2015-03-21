@@ -24,5 +24,6 @@ services:
         arguments:
             - @alex_dpy_acl.acl_identifier
             - @security.role_hierarchy
+            - @security.token_storage
         calls:
             - [ setPermissionMap, [ @alex_dpy_acl.permission_map ] ]

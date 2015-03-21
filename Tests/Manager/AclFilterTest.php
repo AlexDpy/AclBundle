@@ -8,6 +8,7 @@ use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Query;
+use Symfony\Component\Security\Core\Authentication\Token\AnonymousToken;
 
 class AclFilterTest extends AbstractSecurityTest
 {
@@ -91,7 +92,7 @@ class AclFilterTest extends AbstractSecurityTest
         $queryBuilder = $this->em->createQueryBuilder();
         $queryBuilder->select('p')
             ->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $alice);
+        $query = $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id');
         $this->assertEquals([1, 2, 4], $this->getPostIds($query));
 
         $queryBuilder = $this->em->createQueryBuilder();
