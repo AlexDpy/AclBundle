@@ -61,10 +61,10 @@ if ($aclChecker->roleIsGrantedOnObject('ROLE_ADMIN', 'EDIT', $post)) {
     // The role ROLE_ADMIN can EDIT the object $post
 }
 
-if ($aclChecker->userIsGrantedOnClass($user, 'VIEW', 'MyBundle\Entity\Post')) {
+if ($aclChecker->userIsGrantedOnClass($alice, 'VIEW', 'MyBundle\Entity\Post')) {
     // The user $alice can VIEW the class MyBundle\Entity\Post
 }
-if ($aclChecker->userIsGrantedOnObject($user, 'EDIT', $post)) {
+if ($aclChecker->userIsGrantedOnObject($bob, 'EDIT', $post)) {
     // The user $bob can EDIT the object $post
 }
 ```
