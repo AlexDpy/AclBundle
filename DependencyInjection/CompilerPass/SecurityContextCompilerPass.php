@@ -16,6 +16,9 @@ class SecurityContextCompilerPass implements CompilerPassInterface
         if (!$container->has('security.token_storage')) {
             $container->getDefinition('alex_dpy_acl.acl_identifier')
                 ->replaceArgument(0, new Reference('security.context'));
+
+            $container->getDefinition('alex_dpy_acl.acl_filter')
+                ->replaceArgument(2, new Reference('security.context'));
         }
 
         if (!$container->has('security.authorization_checker')) {
