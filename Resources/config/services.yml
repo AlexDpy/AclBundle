@@ -25,5 +25,11 @@ services:
             - @alex_dpy_acl.acl_identifier
             - @security.role_hierarchy
             - @security.token_storage
+            -
+                class: %security.acl.dbal.class_table_name%
+                entry: %security.acl.dbal.entry_table_name%
+                oid: %security.acl.dbal.oid_table_name%
+                oid_ancestor: %security.acl.dbal.oid_ancestors_table_name%
+                sid: %security.acl.dbal.sid_table_name%
         calls:
             - [ setPermissionMap, [ @alex_dpy_acl.permission_map ] ]

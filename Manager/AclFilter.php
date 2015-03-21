@@ -34,6 +34,10 @@ class AclFilter
     protected $tokenStorage;
 
     /**
+     * @var array
+     */
+    protected $aclTables;
+    /**
      * @var PermissionMapInterface
      */
     protected $permissionMap;
@@ -47,15 +51,18 @@ class AclFilter
      * @param AclIdentifierInterface $aclIdentifier
      * @param RoleHierarchyInterface $roleHierarchy
      * @param TokenStorageInterface  $tokenStorage
+     * @param array                  $aclTables
      */
     public function __construct(
         AclIdentifierInterface $aclIdentifier,
         RoleHierarchyInterface $roleHierarchy,
-        TokenStorageInterface $tokenStorage
+        TokenStorageInterface $tokenStorage,
+        array $aclTables
     ) {
         $this->aclIdentifier = $aclIdentifier;
         $this->roleHierarchy = $roleHierarchy;
         $this->tokenStorage = $tokenStorage;
+        $this->aclTables = $aclTables;
     }
 
 
@@ -104,11 +111,11 @@ class AclFilter
 
         $subQuery = <<<SQL
 SELECT acl_o.object_identifier
-FROM acl_object_identities acl_o
-INNER JOIN acl_classes acl_c ON acl_o.class_id = acl_c.id AND acl_c.class_type = {$connection->quote($oidClass)}
-LEFT JOIN acl_entries acl_e ON acl_o.class_id = acl_e.class_id
+FROM {$this->aclTables['oid']} acl_o
+INNER JOIN {$this->aclTables['class']} acl_c ON acl_o.class_id = acl_c.id AND acl_c.class_type = {$connection->quote($oidClass)}
+LEFT JOIN {$this->aclTables['entry']} acl_e ON acl_o.class_id = acl_e.class_id
   AND (acl_o.id = acl_e.object_identity_id OR acl_e.object_identity_id IS NULL)
-LEFT JOIN acl_security_identities acl_s ON acl_e.security_identity_id = acl_s.id
+LEFT JOIN {$this->aclTables['sid']} acl_s ON acl_e.security_identity_id = acl_s.id
 WHERE acl_o.object_identifier = {$oidReference}
   AND {$this->getSecurityIdentitiesWhereClause($connection, $user)}
   AND acl_e.granting = 1 AND (
