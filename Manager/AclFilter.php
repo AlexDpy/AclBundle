@@ -106,9 +106,6 @@ class AclFilter
             throw new \Exception();
         }
 
-        //@TODO use permissionMap->getMasks($permission, $object) to generate the requiredMask
-        $requiredMask = $this->permissionMap->getMaskBuilder()->getMask($permission);
-
         $subQuery = <<<SQL
 SELECT acl_o.object_identifier
 FROM {$this->aclTables['oid']} acl_o
@@ -118,11 +115,7 @@ LEFT JOIN {$this->aclTables['entry']} acl_e ON acl_o.class_id = acl_e.class_id
 LEFT JOIN {$this->aclTables['sid']} acl_s ON acl_e.security_identity_id = acl_s.id
 WHERE acl_o.object_identifier = {$oidReference}
   AND {$this->getSecurityIdentitiesWhereClause($connection, $user)}
-  AND acl_e.granting = 1 AND (
-    (acl_e.granting_strategy = {$connection->quote(PermissionGrantingStrategy::ALL)} AND {$requiredMask} = (acl_e.mask & {$requiredMask}))
-    OR (acl_e.granting_strategy = {$connection->quote(PermissionGrantingStrategy::ANY)} AND 0 != (acl_e.mask & {$requiredMask}))
-    OR (acl_e.granting_strategy = {$connection->quote(PermissionGrantingStrategy::EQUAL)} AND {$requiredMask} = acl_e.mask)
-  )
+  AND {$this->getEntriesWhereClause($connection, $permission)}
 SQL;
 
         if ($queryBuilder instanceof QueryBuilder) {
@@ -176,5 +169,40 @@ SQL;
         }
 
         return '(' . $sql . ')';
+    }
+
+    /**
+     * @param Connection $connection
+     * @param $permission
+     *
+     * @return string
+     * @throws \Exception
+     */
+    private function getEntriesWhereClause(Connection $connection, $permission)
+    {
+        $sql = 'acl_e.granting = 1 AND (';
+
+        $requiredMasks = $this->permissionMap->getMasks(strtoupper($permission), null);
+
+        if (empty($requiredMasks)) {
+            throw new \Exception('The required masks can not be resolved');
+        }
+
+        $all = $connection->quote(PermissionGrantingStrategy::ALL);
+        $any = $connection->quote(PermissionGrantingStrategy::ANY);
+        $equal = $connection->quote(PermissionGrantingStrategy::EQUAL);
+
+        $conditions = [];
+        foreach ($requiredMasks as $requiredMask) {
+            $conditions[] = <<<SQL
+(
+  (acl_e.granting_strategy = {$all} AND {$requiredMask} = (acl_e.mask & {$requiredMask}))
+  OR (acl_e.granting_strategy = {$any} AND 0 != (acl_e.mask & {$requiredMask}))
+  OR (acl_e.granting_strategy = {$equal} AND {$requiredMask} = acl_e.mask)
+)
+SQL;
+        }
+
+        return $sql . implode(' OR ', $conditions) . ')';
     }
 }

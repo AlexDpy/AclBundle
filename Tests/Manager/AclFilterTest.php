@@ -9,6 +9,7 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Query;
 use Symfony\Component\Security\Core\Authentication\Token\AnonymousToken;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 class AclFilterTest extends AbstractSecurityTest
 {
@@ -46,7 +47,7 @@ class AclFilterTest extends AbstractSecurityTest
     }
 
 
-    public function testFilterWithDBALQueryBuilder()
+    public function testFilter()
     {
         $alice = $this->generateUser('alice', ['ROLE_H_ADMIN']);
         $bob = $this->generateUser('bob', ['ROLE_H_SUPER_ADMIN']);
@@ -57,60 +58,43 @@ class AclFilterTest extends AbstractSecurityTest
         $this->aclManager->grantRoleOnObject('view', $this->posts[2], 'ROLE_H_ADMIN');
         $this->aclManager->grantRoleOnObject('view', $this->posts[3], 'ROLE_H_SUPER_ADMIN');
         $this->aclManager->grantUserOnObject('view', $this->posts[4], $alice);
+        $this->aclManager->grantUserOnObject('edit', $this->posts[5], $alice);
+        $this->aclManager->grantUserOnObject('create', $this->posts[6], $alice);
 
-        $queryBuilder = new DBALQueryBuilder($this->connection);
-        $queryBuilder->select('p.id')
-            ->from('posts p');
-        $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $alice);
-        $this->assertEquals([1, 2, 4], $this->getPostIds($queryBuilder));
-
-        $queryBuilder = new DBALQueryBuilder($this->connection);
-        $queryBuilder->select('p.id')
-            ->from('posts p');
-        $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $bob);
-        $this->assertEquals([1, 2, 3], $this->getPostIds($queryBuilder));
-
-        $queryBuilder = new DBALQueryBuilder($this->connection);
-        $queryBuilder->select('p.id')
-            ->from('posts p');
-        $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $mallory);
-        $this->assertEquals([1], $this->getPostIds($queryBuilder));
+        $this->verify([1, 2, 4, 5], 'view');
+        $this->verify([1, 2, 3], 'view', $bob);
+        $this->verify([1], 'view', $mallory);
     }
 
-    public function testFilterWithORMQueryBuilder()
+    /**
+     * @param int[]         $expected
+     * @param string        $permission
+     * @param UserInterface $user
+     */
+    private function verify(array $expected, $permission, UserInterface $user = null)
     {
-        $alice = $this->generateUser('alice', ['ROLE_H_ADMIN']);
-        $bob = $this->generateUser('bob', ['ROLE_H_SUPER_ADMIN']);
-        $mallory = $this->generateUser('mallory', ['ROLE_H_USER']);
-        $this->authenticateUser($alice);
+        $DBALQueryBuilder = new DBALQueryBuilder($this->connection);
+        $DBALQueryBuilder->select('p.id')->from('posts p');
+        $this->aclFilter->apply($DBALQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user);
+        $this->assertEquals(
+            $expected,
+            $this->getPostIds($DBALQueryBuilder),
+            'AclFilter did not math using DBALQueryBuilder'
+        );
 
-        $this->aclManager->grantRoleOnObject('view', $this->posts[1], 'ROLE_H_USER');
-        $this->aclManager->grantRoleOnObject('view', $this->posts[2], 'ROLE_H_ADMIN');
-        $this->aclManager->grantRoleOnObject('view', $this->posts[3], 'ROLE_H_SUPER_ADMIN');
-        $this->aclManager->grantUserOnObject('view', $this->posts[4], $alice);
-
-        $queryBuilder = $this->em->createQueryBuilder();
-        $queryBuilder->select('p')
-            ->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id');
-        $this->assertEquals([1, 2, 4], $this->getPostIds($query));
-
-        $queryBuilder = $this->em->createQueryBuilder();
-        $queryBuilder->select('p')
-            ->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $bob);
-        $this->assertEquals([1, 2, 3], $this->getPostIds($query));
-
-        $queryBuilder = $this->em->createQueryBuilder();
-        $queryBuilder->select('p')
-            ->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($queryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $mallory);
-        $this->assertEquals([1], $this->getPostIds($query));
+        $ORMQueryBuilder = $this->em->createQueryBuilder();
+        $ORMQueryBuilder->select('p')->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
+        $query = $this->aclFilter->apply($ORMQueryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user);
+        $this->assertEquals(
+            $expected,
+            $this->getPostIds($query),
+            'AclFilter did not math using ORMQueryBuilder'
+        );
     }
 
     /**
      * @param DBALQueryBuilder|Query $queryBuilder
-     * @return array
+     * @return int[]
      */
     private function getPostIds($queryBuilder)
     {
