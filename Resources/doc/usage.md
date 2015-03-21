@@ -10,8 +10,8 @@ The two main services are :
 $aclManager = $container->get('alex_dpy_acl.acl_manager');
 ```
 
-With the AclManager, we can grant (or revoke) a Role (or a User) on a Class (or an Object).
-This gives us 8 combinations exposed as 8 methods in the AclManager :
+The AclManager can grant (or revoke) a Role (or a User) on a Class (or an Object).
+This gives 8 combinations exposed as 8 methods in the AclManager :
 
 ```php
 AclManager::grantRoleOnClass($permissions, $class, $role, $field = null)
@@ -41,7 +41,45 @@ $aclManager->grantUserOnObject('EDIT', $post, $user);
 ## AclChecker
 
 ```php
-$aclManager = $container->get('alex_dpy_acl.acl_checker');
+$aclChecker = $container->get('alex_dpy_acl.acl_checker');
 ```
 
-TODO
+The AclChecker gets the 'isGranted' decision.
+
+```php
+if ($aclChecker->isGrantedOnClass('VIEW', 'MyBundle\Entity\Post')) {
+    // The current user can VIEW the class MyBundle\Entity\Post
+}
+if ($aclChecker->isGrantedOnObject('EDIT', $post)) {
+    // The current user can EDIT object $post
+}
+
+if ($aclChecker->roleIsGrantedOnClass('ROLE_USER', 'VIEW', 'MyBundle\Entity\Post')) {
+    // The role ROLE_USER can VIEW the class MyBundle\Entity\Post
+}
+if ($aclChecker->roleIsGrantedOnObject('ROLE_ADMIN', 'EDIT', $post)) {
+    // The role ROLE_ADMIN can EDIT the object $post
+}
+
+if ($aclChecker->userIsGrantedOnClass($user, 'VIEW', 'MyBundle\Entity\Post')) {
+    // The user $alice can VIEW the class MyBundle\Entity\Post
+}
+if ($aclChecker->userIsGrantedOnObject($user, 'EDIT', $post)) {
+    // The user $bob can EDIT the object $post
+}
+```
+
+## AclFilter
+
+```php
+$aclFilter = $container->get('alex_dpy_acl.acl_filter');
+```
+
+The AclFilter helps retrieving only granted objects.
+
+```php
+$queryBuilder = $repository->getQueryBuilder();
+$query = $aclFilter->apply($queryBuilder, 'VIEW', 'Post', 'p.id');
+$posts = $query->getResult();
+// The current user will only see the posts he is granted on with the VIEW permission
+```
