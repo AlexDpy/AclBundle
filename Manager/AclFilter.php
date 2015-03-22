@@ -100,36 +100,40 @@ class AclFilter
     {
         if ($queryBuilder instanceof DBALQueryBuilder) {
             $connection = $queryBuilder->getConnection();
-        } elseif ($queryBuilder instanceof QueryBuilder) {
-            $connection = $queryBuilder->getEntityManager()->getConnection();
-        }else {
-            throw new \Exception();
+
+            $explode = explode('.', $oidReference, 2);
+            $fromAlias = $explode[0];
+
+            $queryBuilder
+                ->leftJoin($fromAlias, $this->aclTables['oid'], 'acl_o',
+                    $oidReference . ' = acl_o.object_identifier')
+                ->leftJoin('acl_o', $this->aclTables['class'], 'acl_c',
+                    'acl_o.id = acl_c.id AND acl_c.class_type = ' . $connection->quote($oidClass))
+                ->leftJoin('acl_o', $this->aclTables['entry'], 'acl_e',
+                    'acl_o.class_id = acl_e.class_id AND (acl_o.id = acl_e.object_identity_id OR acl_e.object_identity_id IS NULL)')
+                ->leftJoin('acl_e', $this->aclTables['sid'], 'acl_s',
+                    'acl_e.security_identity_id = acl_s.id')
+                ->andWhere($this->getSecurityIdentitiesWhereClause($connection, $user))
+                ->andWhere($this->getEntriesWhereClause($connection, $permission));
+
+            return $queryBuilder;
         }
 
-        $subQuery = <<<SQL
-SELECT acl_o.object_identifier
-FROM {$this->aclTables['oid']} acl_o
-INNER JOIN {$this->aclTables['class']} acl_c ON acl_o.class_id = acl_c.id AND acl_c.class_type = {$connection->quote($oidClass)}
-LEFT JOIN {$this->aclTables['entry']} acl_e ON acl_o.class_id = acl_e.class_id
-  AND (acl_o.id = acl_e.object_identity_id OR acl_e.object_identity_id IS NULL)
-LEFT JOIN {$this->aclTables['sid']} acl_s ON acl_e.security_identity_id = acl_s.id
-WHERE acl_o.object_identifier = {$oidReference}
-  AND {$this->getSecurityIdentitiesWhereClause($connection, $user)}
-  AND {$this->getEntriesWhereClause($connection, $permission)}
-SQL;
-
         if ($queryBuilder instanceof QueryBuilder) {
+            $connection = $queryBuilder->getEntityManager()->getConnection();
+
             $query = $queryBuilder->getQuery();
-            $query->setHint('acl_filter_sub_query', $subQuery);
+            $query->setHint('acl_tables', $this->aclTables);
+            $query->setHint('acl_filter_sid_where_clause', $this->getSecurityIdentitiesWhereClause($connection, $user));
             $query->setHint('acl_filter_oid_reference', $oidReference);
+            $query->setHint('acl_filter_oid_class', $oidClass);
+            $query->setHint('acl_filter_entries_where_clause', $this->getEntriesWhereClause($connection, $permission));
             $query->setHint(Query::HINT_CUSTOM_OUTPUT_WALKER, $this->aclWalker);
 
             return $query;
         }
 
-        $queryBuilder->andWhere($oidReference . ' IN (' . $subQuery . ')');
-
-        return $queryBuilder;
+        throw new \Exception('AclFilter only supports DBALQueryBuilder and ORMQueryBuilder');
     }
 
     /**
