@@ -66,6 +66,49 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view', $mallory);
     }
 
+    public function testFilterDoesNotCatchNotGrantedRows()
+    {
+        $alice = $this->generateUser('alice');
+        $bob = $this->generateUser('bob');
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantUserOnObject('view', $this->posts[1], $alice);
+        $this->aclManager->grantUserOnObject('view', $this->posts[2], $bob);
+
+        $this->verify([1], 'view');
+    }
+
+    public function testFilterTakesPermissionMapIntoAccount()
+    {
+        $alice = $this->generateUser('alice');
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantUserOnObject('edit', $this->posts[1]);
+
+        $this->verify([1], 'view');
+    }
+
+    public function testFilterWithSimpleRoles()
+    {
+        $alice = $this->generateUser('alice', ['ROLE_ADMIN']);
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantRoleOnObject('view', $this->posts[1], 'ROLE_USER');
+
+        $this->verify([], 'view');
+    }
+
+    public function testFilterWithHierarchyRoles()
+    {
+        $alice = $this->generateUser('alice', ['ROLE_H_ADMIN']);
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantRoleOnObject('view', $this->posts[1], 'ROLE_H_USER');
+        $this->aclManager->grantRoleOnClass('view', $this->posts[1], 'ROLE_H_USER');
+
+        $this->verify([1], 'view');
+    }
+
     /**
      * @param int[]         $expected
      * @param string        $permission
@@ -110,6 +153,6 @@ class AclFilterTest extends AbstractSecurityTest
             }
         }
 
-        return $ids;
+        return array_unique($ids);
     }
 }
