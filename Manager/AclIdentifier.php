@@ -6,21 +6,21 @@ use AlexDpy\AclBundle\Exception\OidTypeException;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\Util\ClassUtils;
 
 class AclIdentifier implements AclIdentifierInterface
 {
     /**
-     * @var TokenStorageInterface
+     * @var SecurityContextInterface
      */
     protected $tokenStorage;
 
     /**
-     * @param TokenStorageInterface $tokenStorage
+     * @param SecurityContextInterface $tokenStorage
      */
-    public function __construct(TokenStorageInterface $tokenStorage)
+    public function __construct(SecurityContextInterface $tokenStorage)
     {
         $this->tokenStorage = $tokenStorage;
     }

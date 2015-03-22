@@ -8,8 +8,8 @@ use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Voter\FieldVote;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Role\RoleInterface;
+use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\User;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -21,7 +21,7 @@ class AclChecker implements AclCheckerInterface
     protected $aclIdentifier;
     
     /**
-     * @var AuthorizationCheckerInterface $authorizationChecker
+     * @var SecurityContextInterface $authorizationChecker
      */
     protected $authorizationChecker;
 
@@ -32,12 +32,12 @@ class AclChecker implements AclCheckerInterface
 
     /**
      * @param AclIdentifierInterface         $aclIdentifier
-     * @param AuthorizationCheckerInterface  $authorizationChecker
+     * @param SecurityContextInterface       $authorizationChecker
      * @param AccessDecisionManagerInterface $accessDecisionManager
      */
     public function __construct(
         AclIdentifierInterface $aclIdentifier,
-        AuthorizationCheckerInterface $authorizationChecker,
+        SecurityContextInterface $authorizationChecker,
         AccessDecisionManagerInterface $accessDecisionManager
     ) {
         $this->aclIdentifier = $aclIdentifier;

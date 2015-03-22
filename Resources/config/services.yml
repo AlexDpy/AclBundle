@@ -2,7 +2,7 @@ services:
     alex_dpy_acl.acl_identifier:
         class: AlexDpy\AclBundle\Manager\AclIdentifier
         arguments:
-            - @security.token_storage
+            - @security.context
 
     alex_dpy_acl.acl_manager:
         class: AlexDpy\AclBundle\Manager\AclManager
@@ -16,7 +16,7 @@ services:
         class: AlexDpy\AclBundle\Manager\AclChecker
         arguments:
             - @alex_dpy_acl.acl_identifier
-            - @security.authorization_checker
+            - @security.context
             - @security.access.decision_manager
 
     alex_dpy_acl.acl_filter:
@@ -24,7 +24,7 @@ services:
         arguments:
             - @alex_dpy_acl.acl_identifier
             - @security.role_hierarchy
-            - @security.token_storage
+            - @security.context
             -
                 class: %security.acl.dbal.class_table_name%
                 entry: %security.acl.dbal.entry_table_name%
