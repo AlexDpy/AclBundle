@@ -74,7 +74,7 @@ class AclFilterTest extends AbstractSecurityTest
     private function verify(array $expected, $permission, UserInterface $user = null)
     {
         $DBALQueryBuilder = new DBALQueryBuilder($this->connection);
-        $DBALQueryBuilder->select('p.id')->from('posts p');
+        $DBALQueryBuilder->select('p.id')->from('posts', 'p');
         $this->aclFilter->apply($DBALQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user);
         $this->assertEquals(
             $expected,
