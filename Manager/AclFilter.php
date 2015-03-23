@@ -92,29 +92,39 @@ class AclFilter
      * @param string                        $oidClass
      * @param string                        $oidReference
      * @param null|UserInterface            $user
+     * @param string[]                      $orX
      *
      * @return Query|DBALQueryBuilder
      * @throws \Exception
      */
-    public function apply($queryBuilder, $permission, $oidClass, $oidReference, UserInterface $user = null)
-    {
+    public function apply(
+        $queryBuilder,
+        $permission,
+        $oidClass,
+        $oidReference,
+        UserInterface $user = null,
+        array $orX = []
+    ) {
         if ($queryBuilder instanceof DBALQueryBuilder) {
             $connection = $queryBuilder->getConnection();
 
             $explode = explode('.', $oidReference, 2);
             $fromAlias = $explode[0];
 
-            $queryBuilder
-                ->leftJoin($fromAlias, $this->aclTables['oid'], 'acl_o',
-                    $oidReference . ' = acl_o.object_identifier')
-                ->leftJoin('acl_o', $this->aclTables['class'], 'acl_c',
-                    'acl_o.id = acl_c.id AND acl_c.class_type = ' . $connection->quote($oidClass))
-                ->leftJoin('acl_o', $this->aclTables['entry'], 'acl_e',
-                    'acl_o.class_id = acl_e.class_id AND (acl_o.id = acl_e.object_identity_id OR acl_e.object_identity_id IS NULL)')
-                ->leftJoin('acl_e', $this->aclTables['sid'], 'acl_s',
-                    'acl_e.security_identity_id = acl_s.id')
-                ->andWhere($this->getSecurityIdentitiesWhereClause($connection, $user))
-                ->andWhere($this->getEntriesWhereClause($connection, $permission));
+            $queryBuilder->add('join', [
+                $fromAlias => [
+                    'joinType'      => empty($orX) ? 'inner' : 'left',
+                    'joinTable'     => '(' . $this->getAclJoin($connection, $oidClass, $user) . ')',
+                    'joinAlias'     => 'acl',
+                    'joinCondition' => $oidReference . ' = acl.object_identifier'
+                ]
+            ], true);
+
+            $queryBuilder->andWhere($this->getAclWhereClause($connection, $permission));
+
+            if (!empty($orX)) {
+                $queryBuilder->orWhere(call_user_func_array([$connection->getExpressionBuilder(), 'orX'], $orX));
+            }
 
             return $queryBuilder;
         }
@@ -123,11 +133,10 @@ class AclFilter
             $connection = $queryBuilder->getEntityManager()->getConnection();
 
             $query = $queryBuilder->getQuery();
-            $query->setHint('acl_tables', $this->aclTables);
-            $query->setHint('acl_filter_sid_where_clause', $this->getSecurityIdentitiesWhereClause($connection, $user));
+            $query->setHint('acl_join', $this->getAclJoin($connection, $oidClass, $user));
+            $query->setHint('acl_where_clause', $this->getAclWhereClause($connection, $permission));
             $query->setHint('acl_filter_oid_reference', $oidReference);
-            $query->setHint('acl_filter_oid_class', $oidClass);
-            $query->setHint('acl_filter_entries_where_clause', $this->getEntriesWhereClause($connection, $permission));
+            $query->setHint('acl_filter_or_x', $orX);
             $query->setHint(Query::HINT_CUSTOM_OUTPUT_WALKER, $this->aclWalker);
 
             return $query;
@@ -137,42 +146,23 @@ class AclFilter
     }
 
     /**
-     * Get security identifiers associated with specified identity
-     *
      * @param Connection    $connection
+     * @param string        $oidClass
      * @param UserInterface $user
      *
      * @return string
      */
-    private function getSecurityIdentitiesWhereClause(Connection $connection, UserInterface $user = null)
+    private function getAclJoin(Connection $connection, $oidClass, UserInterface $user = null)
     {
-        $userSid = $this->aclIdentifier->getUserSecurityIdentity($user);
-        $sql = '(acl_s.username = 1 AND acl_s.identifier = '
-            . $connection->quote($userSid->getClass() . '-' .$userSid->getUsername()) . ')';
+        $queryBuilder = $connection->createQueryBuilder();
+        $queryBuilder
+            ->select('acl_o.object_identifier', 'acl_e.granting', 'acl_e.granting_strategy', 'acl_e.mask')
+            ->from($this->aclTables['entry'], 'acl_e')
+            ->innerJoin('acl_e', $this->aclTables['oid'], 'acl_o', 'acl_e.object_identity_id = acl_o.id')
+            ->where('acl_e.class_id = ' . $this->findClassId($connection, $oidClass))
+            ->andWhere($queryBuilder->expr()->in('acl_e.security_identity_id', $this->findSidIds($connection, $user)));
 
-        if (null === $user && null !== $this->tokenStorage->getToken()) {
-            $user = $this->tokenStorage->getToken()->getUser();
-        }
-
-        if ($user instanceof UserInterface) {
-            $roles = $this->roleHierarchy->getReachableRoles(array_map(function ($role) {
-                if (!$role instanceof Role) {
-                    $role = new Role($role);
-                }
-
-                return $role;
-            }, $user->getRoles()));
-
-            if (!empty($roles)) {
-                $quotedRoles = array_map(function (RoleInterface $role) use ($connection) {
-                    return $connection->quote($role->getRole());
-                }, $roles);
-
-                $sql .= ' OR (acl_s.username = 0 AND acl_s.identifier IN (' . implode(', ', $quotedRoles) . '))';
-            }
-        }
-
-        return '(' . $sql . ')';
+        return $queryBuilder->getSQL();
     }
 
     /**
@@ -182,9 +172,9 @@ class AclFilter
      * @return string
      * @throws \Exception
      */
-    private function getEntriesWhereClause(Connection $connection, $permission)
+    private function getAclWhereClause(Connection $connection, $permission)
     {
-        $sql = 'acl_e.granting = 1 AND (';
+        $sql = 'acl.granting = 1 AND (';
 
         $requiredMasks = $this->permissionMap->getMasks(strtoupper($permission), null);
 
@@ -200,13 +190,73 @@ class AclFilter
         foreach ($requiredMasks as $requiredMask) {
             $conditions[] = <<<SQL
 (
-  (acl_e.granting_strategy = {$all} AND {$requiredMask} = (acl_e.mask & {$requiredMask}))
-  OR (acl_e.granting_strategy = {$any} AND 0 != (acl_e.mask & {$requiredMask}))
-  OR (acl_e.granting_strategy = {$equal} AND {$requiredMask} = acl_e.mask)
+  (acl.granting_strategy = {$all} AND {$requiredMask} = (acl.mask & {$requiredMask}))
+  OR (acl.granting_strategy = {$any} AND 0 != (acl.mask & {$requiredMask}))
+  OR (acl.granting_strategy = {$equal} AND {$requiredMask} = acl.mask)
 )
 SQL;
         }
 
         return $sql . implode(' OR ', $conditions) . ')';
+    }
+
+    /**
+     * @param Connection $connection
+     * @param string     $oidClass
+     *
+     * @return int
+     */
+    private function findClassId(Connection $connection, $oidClass)
+    {
+        return (int) $connection->fetchColumn(
+            'SELECT acl_c.id FROM ' . $this->aclTables['class'] . ' acl_c WHERE acl_c.class_type = :oid_class',
+            ['oid_class' => $oidClass]
+        );
+    }
+
+    /**
+     * @param Connection $connection
+     * @param UserInterface $user
+     *
+     * @return int[]
+     */
+    private function findSidIds(Connection $connection, UserInterface $user = null)
+    {
+        $userSid = $this->aclIdentifier->getUserSecurityIdentity($user);
+
+        $queryBuilder = $connection->createQueryBuilder();
+        $queryBuilder
+            ->select('acl_s.id')
+            ->from($this->aclTables['sid'], 'acl_s')
+            ->where('acl_s.username = 1 AND acl_s.identifier = :identifier')
+            ->setParameter('identifier', $userSid->getClass() . '-' . $userSid->getUsername());
+
+        if (null === $user && null !== $this->tokenStorage->getToken()) {
+            $user = $this->tokenStorage->getToken()->getUser();
+        }
+
+        if ($user instanceof UserInterface) {
+            $roles = $this->roleHierarchy->getReachableRoles(array_map(function ($role) {
+                if (is_string($role)) {
+                    $role = new Role($role);
+                }
+
+                return $role;
+            }, $user->getRoles()));
+
+            $roles = array_map(function (RoleInterface $role) {
+                return $role->getRole();
+            }, $roles);
+
+            if (!empty($roles)) {
+                $queryBuilder
+                    ->orWhere('acl_s.username = 0 AND acl_s.identifier IN (:roles)')
+                    ->setParameter('roles', $roles, Connection::PARAM_STR_ARRAY);
+            }
+        }
+
+        return array_map(function (array $row) {
+            return (int) $row['id'];
+        }, $queryBuilder->execute()->fetchAll());
     }
 }

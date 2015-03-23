@@ -8,7 +8,6 @@ use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Query;
-use Symfony\Component\Security\Core\Authentication\Token\AnonymousToken;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 class AclFilterTest extends AbstractSecurityTest
@@ -26,6 +25,7 @@ class AclFilterTest extends AbstractSecurityTest
         $posts = $schema->createTable('posts');
         $posts->addColumn('id', Type::INTEGER);
         $posts->setPrimaryKey(['id']);
+        $posts->addColumn('status', Type::STRING);
 
         $this->connection->exec("DROP TABLE IF EXISTS posts");
         foreach ($schema->toSql($this->connection->getDatabasePlatform()) as $sql) {
@@ -34,8 +34,11 @@ class AclFilterTest extends AbstractSecurityTest
 
         $i = 1;
         while ($i <= 10) {
-            $this->connection->insert('posts', ['id' => $i]);
             $this->posts[$i] = new PostObject($i);
+            $this->connection->insert('posts', [
+                'id' => $this->posts[$i]->getId(),
+                'status' => $this->posts[$i]->getStatus()
+            ]);
             $i++;
         }
     }
@@ -109,16 +112,28 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view');
     }
 
+    public function testFilterWithOrX()
+    {
+        $alice = $this->generateUser('alice');
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantUserOnObject('view', $this->posts[3], $alice);
+        $this->aclManager->grantUserOnObject('view', $this->posts[9], $alice);
+
+        $this->verify([2, 3, 4, 6, 8, 9, 10], 'view', $alice, ['p.status = \'even\'']);
+    }
+
     /**
      * @param int[]         $expected
      * @param string        $permission
      * @param UserInterface $user
+     * @param string[]      $orX
      */
-    private function verify(array $expected, $permission, UserInterface $user = null)
+    private function verify(array $expected, $permission, UserInterface $user = null, array $orX = [])
     {
         $DBALQueryBuilder = new DBALQueryBuilder($this->connection);
-        $DBALQueryBuilder->select('p.id')->from('posts', 'p');
-        $this->aclFilter->apply($DBALQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user);
+        $DBALQueryBuilder->select('*')->from('posts', 'p');
+        $this->aclFilter->apply($DBALQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
         $this->assertEquals(
             $expected,
             $this->getPostIds($DBALQueryBuilder),
@@ -127,7 +142,7 @@ class AclFilterTest extends AbstractSecurityTest
 
         $ORMQueryBuilder = $this->em->createQueryBuilder();
         $ORMQueryBuilder->select('p')->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($ORMQueryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user);
+        $query = $this->aclFilter->apply($ORMQueryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
         $this->assertEquals(
             $expected,
             $this->getPostIds($query),

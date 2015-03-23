@@ -2,6 +2,8 @@
 
 namespace AlexDpy\AclBundle\Manager;
 
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query\Expr\Orx;
 use Doctrine\ORM\Query\SqlWalker;
 
 class AclWalker extends SqlWalker
@@ -14,22 +16,16 @@ class AclWalker extends SqlWalker
     {
         $sql = parent::walkFromClause($fromClause) . ' ';
 
-        $aclTables = $this->getQuery()->getHint('acl_tables');
+        $aclJoin = $this->getQuery()->getHint('acl_join');
         $oidReference = $this->getQuery()->getHint('acl_filter_oid_reference');
-        $oidClass = $this->getQuery()->getHint('acl_filter_oid_class');
+        $orX = $this->getQuery()->getHint('acl_filter_or_x');
 
-        $explode = explode('.', $oidReference, 2);
-        $oidTableReference = $this->getQueryComponent($explode[0])['metadata']->table['name'];
-        $oidAliasReference = $this->getSQLTableAlias($oidTableReference, $explode[0]);
-        $newOidReference = $oidAliasReference . '.' . $explode[1];
+        $joinType = empty($orX) ? 'INNER' : 'LEFT';
+        $newOidReference = $this->DQLToSQLReference($oidReference);
+
 
         $sql .= <<<SQL
-LEFT JOIN {$aclTables['oid']} as acl_o ON {$newOidReference} = acl_o.object_identifier
-LEFT JOIN {$aclTables['class']} as acl_c ON acl_o.id = acl_c.id
-  AND acl_c.class_type = {$this->getConnection()->quote($oidClass)}
-LEFT JOIN {$aclTables['entry']} as acl_e ON acl_o.class_id = acl_e.class_id
-  AND (acl_o.id = acl_e.object_identity_id OR acl_e.object_identity_id IS NULL)
-LEFT JOIN {$aclTables['sid']} as acl_s ON acl_e.security_identity_id = acl_s.id
+{$joinType} JOIN ($aclJoin) acl ON {$newOidReference} = acl.object_identifier
 SQL;
 
         return $sql;
@@ -43,13 +39,42 @@ SQL;
     {
         $sql =  parent::walkWhereClause($whereClause);
 
-        $sidWhereClause = $this->getQuery()->getHint('acl_filter_sid_where_clause');
-        $entriesWhereClause = $this->getQuery()->getHint('acl_filter_entries_where_clause');
+        $aclWhereClause = $this->getQuery()->getHint('acl_where_clause');
+        $orX = $this->getQuery()->getHint('acl_filter_or_x');
 
-        $sql .= empty($sql) ? ' WHERE ' : ' AND ';
+        $sql .= empty($sql) ? ' WHERE (' : ' AND (';
 
-        $sql .= $sidWhereClause . ' AND ' . $entriesWhereClause;
+        if (!empty($orX)) {
+            foreach ($orX as $key => $or) {
+                preg_match_all("/\w+\.{1}\w+/", $or, $orReferences);
+
+                foreach ($orReferences as $orReference) {
+                    $orX[$key] = str_replace($orReference[0], $this->DQLToSQLReference($orReference[0]), $or);
+                }
+            }
+
+            $sql .= '(' . new Orx($orX) . ') OR ';
+        }
+
+        $sql .= '(' . $aclWhereClause . '))';
 
         return $sql;
+    }
+
+    /**
+     * @param string $reference
+     *
+     * @return string
+     */
+    private function DQLToSQLReference($reference)
+    {
+        $explode = explode('.', $reference, 2);
+        /** @var ClassMetadata $metadata */
+        $metadata = $this->getQueryComponent($explode[0])['metadata'];
+        $tableReference = $metadata->table['name'];
+        $aliasReference = $this->getSQLTableAlias($tableReference, $explode[0]);
+        $columnName = $metadata->fieldMappings[$explode[1]]['columnName'];
+
+        return $aliasReference . '.' . $columnName;
     }
 }

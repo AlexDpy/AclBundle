@@ -22,11 +22,19 @@ class PostObject
     protected $id;
 
     /**
+     * @Column(type="string")
+     *
+     * @var string
+     */
+    protected $status;
+
+    /**
      * @param int $id
      */
     public function __construct($id)
     {
         $this->id = $id;
+        $this->status = 0 === $id % 2 ? 'even' : 'odd';
     }
 
     /**
@@ -35,5 +43,25 @@ class PostObject
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * @param string $status
+     *
+     * @return PostObject
+     */
+    public function setStatus($status)
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getStatus()
+    {
+        return $this->status;
     }
 }
