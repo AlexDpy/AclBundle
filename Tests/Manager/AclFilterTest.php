@@ -69,7 +69,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view', $mallory);
     }
 
-    public function testFilterDoesNotCatchNotGrantedRows()
+    public function testDoesNotCatchNotGrantedRows()
     {
         $alice = $this->generateUser('alice');
         $bob = $this->generateUser('bob');
@@ -81,7 +81,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view');
     }
 
-    public function testFilterTakesPermissionMapIntoAccount()
+    public function testTakesPermissionMapIntoAccount()
     {
         $alice = $this->generateUser('alice');
         $this->authenticateUser($alice);
@@ -91,7 +91,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view');
     }
 
-    public function testFilterWithSimpleRoles()
+    public function testWithSimpleRoles()
     {
         $alice = $this->generateUser('alice', ['ROLE_ADMIN']);
         $this->authenticateUser($alice);
@@ -101,7 +101,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([], 'view');
     }
 
-    public function testFilterWithHierarchyRoles()
+    public function testWithHierarchyRoles()
     {
         $alice = $this->generateUser('alice', ['ROLE_H_ADMIN']);
         $this->authenticateUser($alice);
@@ -112,7 +112,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([1], 'view');
     }
 
-    public function testFilterWithOrX()
+    public function testWithOrX()
     {
         $alice = $this->generateUser('alice');
         $this->authenticateUser($alice);
@@ -123,31 +123,94 @@ class AclFilterTest extends AbstractSecurityTest
         $this->verify([2, 3, 4, 6, 8, 9, 10], 'view', $alice, ['p.status = \'even\'']);
     }
 
+    public function testWithWhere()
+    {
+        $alice = $this->generateUser('alice');
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantUserOnObject('view', $this->posts[3], $alice);
+        $this->aclManager->grantUserOnObject('view', $this->posts[9], $alice);
+
+        $this->verify([3], 'view', null, [], 'p.id IN (1, 2, 3)');
+    }
+
+    public function testWithWhereAndOrX()
+    {
+        $alice = $this->generateUser('alice');
+        $this->authenticateUser($alice);
+
+        $this->aclManager->grantUserOnObject('view', $this->posts[3], $alice);
+        $this->aclManager->grantUserOnObject('view', $this->posts[9], $alice);
+
+        $this->verify([2, 3], 'view', null, ['p.status = \'even\''], 'p.id IN (1, 2, 3)');
+    }
+
     /**
      * @param int[]         $expected
      * @param string        $permission
      * @param UserInterface $user
      * @param string[]      $orX
+     * @param string        $where
      */
-    private function verify(array $expected, $permission, UserInterface $user = null, array $orX = [])
+    private function verify(array $expected, $permission, UserInterface $user = null, array $orX = [], $where = null)
     {
+        $fails = [];
+        $permission = strtoupper($permission);
+
         $DBALQueryBuilder = new DBALQueryBuilder($this->connection);
         $DBALQueryBuilder->select('*')->from('posts', 'p');
+        if (null !== $where) {
+            $DBALQueryBuilder->where($where);
+        }
         $this->aclFilter->apply($DBALQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
-        $this->assertEquals(
-            $expected,
-            $this->getPostIds($DBALQueryBuilder),
-            'AclFilter did not math using DBALQueryBuilder'
-        );
+        try {
+            $this->assertEquals(
+                $expected,
+                $this->getPostIds($DBALQueryBuilder),
+                'DBALQueryBuilder failed'
+            );
+        } catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+            $fails[] = $e;
+        }
 
         $ORMQueryBuilder = $this->em->createQueryBuilder();
         $ORMQueryBuilder->select('p')->from('AlexDpy\AclBundle\Tests\Model\PostObject', 'p');
-        $query = $this->aclFilter->apply($ORMQueryBuilder, 'view', 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
-        $this->assertEquals(
-            $expected,
-            $this->getPostIds($query),
-            'AclFilter did not math using ORMQueryBuilder'
-        );
+        if (null !== $where) {
+            $ORMQueryBuilder->where($where);
+        }
+        $cloneORMQueryBuilder = clone $ORMQueryBuilder;
+        $query = $this->aclFilter->apply($ORMQueryBuilder, $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
+        try {
+            $this->assertEquals(
+                $expected,
+                $this->getPostIds($query),
+                'ORMQueryBuilder failed'
+            );
+        } catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+            $fails[] = $e;
+        }
+
+
+        $query = $this->aclFilter->apply($cloneORMQueryBuilder->getQuery(), $permission, 'AlexDpy\AclBundle\Tests\Model\PostObject', 'p.id', $user, $orX);
+        try {
+            $this->assertEquals(
+                $expected,
+                $this->getPostIds($query),
+                'ORMQuery failed'
+            );
+        } catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+            $fails[] = $e;
+        }
+
+        if (!empty($fails)) {
+            $messages = [];
+            /** @var \PHPUnit_Framework_ExpectationFailedException $e */
+            foreach ($fails as $e) {
+                $messages[] = $e->getMessage() . $e->getComparisonFailure()->getDiff();
+            }
+
+            $this->fail(implode(PHP_EOL, $messages));
+        }
     }
 
     /**

@@ -6,8 +6,8 @@ use AlexDpy\AclBundle\Permission\PermissionMapInterface;
 use AlexDpy\AclBundle\Permission\PermissionMapWrapper;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
-use Doctrine\ORM\Query;
-use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Query as ORMQuery;
+use Doctrine\ORM\QueryBuilder as ORMQueryBuilder;
 use Symfony\Component\Security\Acl\Domain\PermissionGrantingStrategy;
 use Symfony\Component\Security\Acl\Permission\PermissionMapInterface as SymfonyPermissionMapInterface;
 use Symfony\Component\Security\Core\Role\Role;
@@ -87,15 +87,15 @@ class AclFilter
     }
 
     /**
-     * @param DBALQueryBuilder|QueryBuilder $queryBuilder
-     * @param string                        $permission
-     * @param string                        $oidClass
-     * @param string                        $oidReference
-     * @param null|UserInterface            $user
-     * @param string[]                      $orX
+     * @param DBALQueryBuilder|ORMQueryBuilder|ORMQuery $queryBuilder
+     * @param string                                    $permission
+     * @param string                                    $oidClass
+     * @param string                                    $oidReference
+     * @param null|UserInterface                        $user
+     * @param string[]                                  $orX
      *
-     * @return Query|DBALQueryBuilder
-     * @throws \Exception
+     * @return DBALQueryBuilder|ORMQuery
+     * @throws \InvalidArgumentException
      */
     public function apply(
         $queryBuilder,
@@ -120,29 +120,31 @@ class AclFilter
                 ]
             ], true);
 
-            $queryBuilder->andWhere($this->getAclWhereClause($connection, $permission));
+            $orX[] = $this->getAclWhereClause($connection, $permission);
 
-            if (!empty($orX)) {
-                $queryBuilder->orWhere(call_user_func_array([$connection->getExpressionBuilder(), 'orX'], $orX));
-            }
+            $queryBuilder->andWhere(call_user_func_array([$connection->getExpressionBuilder(), 'orX'], $orX));
 
             return $queryBuilder;
         }
 
-        if ($queryBuilder instanceof QueryBuilder) {
+        if ($queryBuilder instanceof ORMQueryBuilder || $queryBuilder instanceof ORMQuery) {
             $connection = $queryBuilder->getEntityManager()->getConnection();
 
-            $query = $queryBuilder->getQuery();
+            $query = $queryBuilder instanceof ORMQueryBuilder ? $queryBuilder->getQuery() : $queryBuilder;
             $query->setHint('acl_join', $this->getAclJoin($connection, $oidClass, $user));
             $query->setHint('acl_where_clause', $this->getAclWhereClause($connection, $permission));
             $query->setHint('acl_filter_oid_reference', $oidReference);
             $query->setHint('acl_filter_or_x', $orX);
-            $query->setHint(Query::HINT_CUSTOM_OUTPUT_WALKER, $this->aclWalker);
+            $query->setHint(ORMQuery::HINT_CUSTOM_OUTPUT_WALKER, $this->aclWalker);
 
             return $query;
         }
 
-        throw new \Exception('AclFilter only supports DBALQueryBuilder and ORMQueryBuilder');
+        throw new \InvalidArgumentException(sprintf('AclFilter only supports %s, %s or %s.',
+            'Doctrine\DBAL\Query\QueryBuilder',
+            'Doctrine\ORM\QueryBuilder',
+            'Doctrine\ORM\QueryBuilder'
+        ));
     }
 
     /**
@@ -176,7 +178,7 @@ class AclFilter
     {
         $sql = 'acl.granting = 1 AND (';
 
-        $requiredMasks = $this->permissionMap->getMasks(strtoupper($permission), null);
+        $requiredMasks = $this->permissionMap->getMasks($permission, null);
 
         if (empty($requiredMasks)) {
             throw new \Exception('The required masks can not be resolved');
