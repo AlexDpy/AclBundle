@@ -121,6 +121,7 @@ class AclFilterTest extends AbstractSecurityTest
         $this->aclManager->grantUserOnObject('view', $this->posts[9], $alice);
 
         $this->verify([2, 3, 4, 6, 8, 9, 10], 'view', $alice, ['p.status = \'even\'']);
+        $this->verify([2, 3, 4, 5, 6, 8, 9, 10], 'view', $alice, ['p.status = \'even\'', 'p.id = 5']);
     }
 
     public function testWithWhere()
