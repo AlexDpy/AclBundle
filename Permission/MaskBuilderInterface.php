@@ -59,5 +59,5 @@ interface MaskBuilderInterface
      *
      * @throws \InvalidArgumentException
      */
-    public function getMask($code);
+    public function resolveMask($code);
 }

@@ -46,7 +46,7 @@ abstract class AbstractMaskBuilder implements MaskBuilderInterface
      */
     public function add($mask)
     {
-        $this->mask |= $this->getMask($mask);
+        $this->mask |= $this->resolveMask($mask);
 
         return $this;
     }
@@ -56,7 +56,7 @@ abstract class AbstractMaskBuilder implements MaskBuilderInterface
      */
     public function remove($mask)
     {
-        $this->mask &= ~$this->getMask($mask);
+        $this->mask &= ~$this->resolveMask($mask);
 
         return $this;
     }

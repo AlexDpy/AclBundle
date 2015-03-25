@@ -42,7 +42,7 @@ final class BasicMaskBuilder extends AbstractMaskBuilder
      *
      * @throws \InvalidArgumentException
      */
-    public function getMask($code)
+    public function resolveMask($code)
     {
         if (is_string($code)) {
             if (!defined($name = sprintf('Symfony\Component\Security\Acl\Permission\MaskBuilder::MASK_%s', strtoupper($code)))) {
