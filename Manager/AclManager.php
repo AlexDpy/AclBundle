@@ -4,6 +4,7 @@ namespace AlexDpy\AclBundle\Manager;
 
 use AlexDpy\AclBundle\Permission\PermissionMapInterface;
 use AlexDpy\AclBundle\Permission\PermissionMapWrapper;
+use Symfony\Component\Security\Acl\Domain\Entry;
 use Symfony\Component\Security\Acl\Exception\AclNotFoundException;
 use Symfony\Component\Security\Acl\Model\AclInterface;
 use Symfony\Component\Security\Acl\Model\MutableAclInterface;
@@ -170,6 +171,7 @@ class AclManager implements AclManagerInterface
     {
         $index = false;
         $oldMask = 0;
+        /** @var Entry $ace */
         foreach ($acl->{$this->resolveAceMethod('get', $type, $field)}($field) as $k => $ace) {
             if ($securityIdentity->equals($ace->getSecurityIdentity())) {
                 $index = $k;
@@ -214,6 +216,7 @@ class AclManager implements AclManagerInterface
     {
         $index = false;
         $oldMask = 0;
+        /** @var Entry $ace */
         foreach ($acl->{$this->resolveAceMethod('get', $type, $field)}($field) as $k => $ace) {
             if ($securityIdentity->equals($ace->getSecurityIdentity())) {
                 $index = $k;
