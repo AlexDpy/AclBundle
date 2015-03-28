@@ -36,4 +36,16 @@ interface AclIdentifierInterface
      * @return RoleSecurityIdentity
      */
     public function getRoleSecurityIdentity($role);
+
+    /**
+     * @param string             $oldUsername
+     * @param UserInterface|null $user
+     */
+    public function updateUserSecurityIdentity($oldUsername, UserInterface $user = null);
+
+    /**
+     * @param string      $oldRole
+     * @param string|Role $role
+     */
+    public function updateRoleSecurityIdentity($oldRole, $role);
 }
