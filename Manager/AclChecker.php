@@ -10,7 +10,6 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use Symfony\Component\Security\Core\Role\RoleInterface;
 use Symfony\Component\Security\Core\SecurityContextInterface;
-use Symfony\Component\Security\Core\User\User;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 class AclChecker implements AclCheckerInterface
@@ -144,9 +143,10 @@ class AclChecker implements AclCheckerInterface
     }
 
     /**
-     * @param TokenInterface|UserInterface|string $user
+     * @param TokenInterface|UserInterface $user
      *
-     * @return TokenInterface
+     * @return FakeUserToken
+     * @throw \InvalidArgumentException
      */
     protected function getUserToken($user)
     {
@@ -154,8 +154,12 @@ class AclChecker implements AclCheckerInterface
             return $user;
         } elseif ($user instanceof UserInterface) {
             return new FakeUserToken($user);
-        } else {
-            return new FakeUserToken(new User($user, ''));
         }
+
+        throw new \InvalidArgumentException(sprintf(
+            '$user must be instance of %s or %s',
+            'Symfony\Component\Security\Core\Authentication\Token\TokenInterface',
+            'Symfony\Component\Security\Core\User\UserInterface'
+        ));
     }
 }

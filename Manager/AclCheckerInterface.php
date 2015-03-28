@@ -47,20 +47,20 @@ interface AclCheckerInterface
     public function roleIsGrantedOnObject($role, $attributes, $object, $field = null);
 
     /**
-     * @param TokenInterface|UserInterface|string $user
-     * @param mixed                               $attributes
-     * @param string|object                       $class
-     * @param null|string                         $field
+     * @param TokenInterface|UserInterface $user
+     * @param mixed                        $attributes
+     * @param string|object                $class
+     * @param null|string                  $field
      *
      * @return bool
      */
     public function userIsGrantedOnClass($user, $attributes, $class, $field = null);
 
     /**
-     * @param TokenInterface|UserInterface|string $user
-     * @param mixed                               $attributes
-     * @param object                              $object
-     * @param null|string                         $field
+     * @param TokenInterface|UserInterface $user
+     * @param mixed                        $attributes
+     * @param object                       $object
+     * @param null|string                  $field
      *
      * @return bool
      */

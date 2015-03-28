@@ -5,12 +5,6 @@ namespace AlexDpy\AclBundle\AclManager\Tests\Manager;
 use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
 use AlexDpy\AclBundle\Tests\Model\BarObject;
 use AlexDpy\AclBundle\Tests\Model\FooObject;
-use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
-use Symfony\Component\Security\Acl\Model\AclProviderInterface;
-use Symfony\Component\Security\Acl\Model\MutableAclProviderInterface;
-use Symfony\Component\Security\Acl\Permission\MaskBuilder;
-use Symfony\Component\Security\Acl\Voter\FieldVote;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 class AclCheckerTest extends AbstractSecurityTest
 {
