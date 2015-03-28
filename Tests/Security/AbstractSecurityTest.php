@@ -4,6 +4,7 @@ namespace AlexDpy\AclBundle\Tests\Security;
 
 use AlexDpy\AclBundle\Manager\AclCheckerInterface;
 use AlexDpy\AclBundle\Manager\AclFilter;
+use AlexDpy\AclBundle\Manager\AclIdentifierInterface;
 use AlexDpy\AclBundle\Manager\AclManagerInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
@@ -60,6 +61,11 @@ class AbstractSecurityTest extends WebTestCase
     protected $aclFilter;
 
     /**
+     * @var AclIdentifierInterface
+     */
+    protected $aclIdentifier;
+
+    /**
      * @var array
      */
     protected $tableNames;
@@ -92,6 +98,7 @@ class AbstractSecurityTest extends WebTestCase
         $this->aclManager = $this->container->get('alex_dpy_acl.acl_manager');
         $this->aclChecker = $this->container->get('alex_dpy_acl.acl_checker');
         $this->aclFilter = $this->container->get('alex_dpy_acl.acl_filter');
+        $this->aclIdentifier = $this->container->get('alex_dpy_acl.acl_identifier');
     }
 
     protected function tearDown()
@@ -118,7 +125,7 @@ class AbstractSecurityTest extends WebTestCase
      * @param string      $username
      * @param array $roles
      *
-     * @return UserInterface
+     * @return User
      */
     protected function generateUser($username, array $roles = ['ROLE_USER'])
     {

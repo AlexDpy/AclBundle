@@ -3,9 +3,12 @@
 namespace AlexDpy\AclBundle\Manager;
 
 use AlexDpy\AclBundle\Exception\OidTypeException;
+use Doctrine\DBAL\Connection;
+use Symfony\Component\Security\Acl\Dbal\MutableAclProvider;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
+use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\Util\ClassUtils;
@@ -18,11 +21,36 @@ class AclIdentifier implements AclIdentifierInterface
     protected $tokenStorage;
 
     /**
-     * @param SecurityContextInterface $tokenStorage
+     * @var MutableAclProvider
      */
-    public function __construct(SecurityContextInterface $tokenStorage)
-    {
+    protected $aclProvider;
+
+    /**
+     * @var Connection
+     */
+    protected $connection;
+
+    /**
+     * @var string[]
+     */
+    protected $aclTables;
+
+    /**
+     * @param SecurityContextInterface $tokenStorage
+     * @param MutableAclProvider       $aclProvider
+     * @param Connection               $connection
+     * @param string[]                 $aclTables
+     */
+    public function __construct(
+        SecurityContextInterface $tokenStorage,
+        MutableAclProvider $aclProvider,
+        Connection $connection,
+        array $aclTables
+    ) {
         $this->tokenStorage = $tokenStorage;
+        $this->aclProvider = $aclProvider;
+        $this->connection = $connection;
+        $this->aclTables = $aclTables;
     }
 
     /**
@@ -60,5 +88,30 @@ class AclIdentifier implements AclIdentifierInterface
     public function getRoleSecurityIdentity($role)
     {
         return new RoleSecurityIdentity($role);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateUserSecurityIdentity($oldUsername, UserInterface $user = null)
+    {
+        $this->aclProvider->updateUserSecurityIdentity(
+            $this->getUserSecurityIdentity($user),
+            $oldUsername
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateRoleSecurityIdentity($oldRole, $role)
+    {
+        $this->connection->executeQuery(sprintf(
+            'UPDATE %s SET identifier = %s WHERE username = %s AND identifier = %s',
+            $this->aclTables['sid'],
+            $this->connection->quote($this->getRoleSecurityIdentity($role)->getRole()),
+            $this->connection->getDatabasePlatform()->convertBooleans(false),
+            $this->connection->quote($oldRole)
+        ));
     }
 }
