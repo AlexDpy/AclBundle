@@ -1,3 +1,11 @@
+parameters:
+    acl_tables:
+        class: %security.acl.dbal.class_table_name%
+        entry: %security.acl.dbal.entry_table_name%
+        oid: %security.acl.dbal.oid_table_name%
+        oid_ancestor: %security.acl.dbal.oid_ancestors_table_name%
+        sid: %security.acl.dbal.sid_table_name%
+
 services:
     alex_dpy_acl.acl_identifier:
         class: AlexDpy\AclBundle\Manager\AclIdentifier
@@ -5,12 +13,7 @@ services:
             - @security.context
             - @security.acl.provider
             - @security.acl.dbal.connection
-            -
-                class: %security.acl.dbal.class_table_name%
-                entry: %security.acl.dbal.entry_table_name%
-                oid: %security.acl.dbal.oid_table_name%
-                oid_ancestor: %security.acl.dbal.oid_ancestors_table_name%
-                sid: %security.acl.dbal.sid_table_name%
+            - %acl_tables%
 
     alex_dpy_acl.acl_manager:
         class: AlexDpy\AclBundle\Manager\AclManager
@@ -33,11 +36,6 @@ services:
             - @alex_dpy_acl.acl_identifier
             - @security.role_hierarchy
             - @security.context
-            -
-                class: %security.acl.dbal.class_table_name%
-                entry: %security.acl.dbal.entry_table_name%
-                oid: %security.acl.dbal.oid_table_name%
-                oid_ancestor: %security.acl.dbal.oid_ancestors_table_name%
-                sid: %security.acl.dbal.sid_table_name%
+            - %acl_tables%
         calls:
             - [ setPermissionMap, [ @alex_dpy_acl.permission_map ] ]
