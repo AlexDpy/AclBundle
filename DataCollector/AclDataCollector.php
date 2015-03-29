@@ -1,0 +1,164 @@
+<?php
+
+namespace AlexDpy\AclBundle\DataCollector;
+
+use AlexDpy\AclBundle\DataCollector\Collector\AclCheckerCollector;
+use AlexDpy\AclBundle\DataCollector\Collector\AclFilterCollector;
+use AlexDpy\AclBundle\DataCollector\Collector\AclManagerCollector;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\DataCollector\DataCollector;
+use Symfony\Component\HttpKernel\DataCollector\LateDataCollectorInterface;
+
+class AclDataCollector extends DataCollector implements LateDataCollectorInterface
+{
+    /**
+     * @var AclCheckerCollector
+     */
+    protected $aclCheckerCollector;
+
+    /**
+     * @var AclManagerCollector
+     */
+    protected $aclManagerCollector;
+
+    /**
+     * @var AclFilterCollector
+     */
+    protected $aclFilterCollector;
+
+    /**
+     * @param AclCheckerCollector $aclCheckerCollector
+     * @param AclManagerCollector $aclManagerCollector
+     * @param AclFilterCollector  $aclFilterCollector
+     */
+    public function __construct(
+        AclCheckerCollector $aclCheckerCollector,
+        AclManagerCollector $aclManagerCollector,
+        AclFilterCollector $aclFilterCollector
+    ) {
+        $this->aclCheckerCollector = $aclCheckerCollector;
+        $this->aclManagerCollector = $aclManagerCollector;
+        $this->aclFilterCollector = $aclFilterCollector;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function collect(Request $request, Response $response, \Exception $exception = null)
+    {
+
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function lateCollect()
+    {
+        $getChecks = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclCheckerCollector', 'getChecks');
+        $getChecks->setAccessible(true);
+        $this->data['checks'] = $getChecks->invoke($this->aclCheckerCollector);
+
+        $getManagements = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclManagerCollector', 'getManagements');
+        $getManagements->setAccessible(true);
+        $this->data['managements'] = $getManagements->invoke($this->aclManagerCollector);
+
+        $getFilters = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclFilterCollector', 'getFilters');
+        $getFilters->setAccessible(true);
+        $this->data['filters'] = $getFilters->invoke($this->aclFilterCollector);
+    }
+
+    /**
+     * @return int
+     */
+    public function getCount()
+    {
+        return
+            count($this->getChecks())
+            + count($this->getManagements())
+            + count($this->getFilters());
+    }
+
+    /**
+     * @return float
+     */
+    public function getTime()
+    {
+        return
+            $this->getChecksTime()
+            + $this->getManagementsTime()
+            + $this->getFiltersTime();
+    }
+
+    /**
+     * @return array
+     */
+    public function getChecks()
+    {
+        return isset($this->data['checks']) ? $this->data['checks'] : [];
+    }
+
+    /**
+     * @return float
+     */
+    public function getChecksTime()
+    {
+        $time = 0;
+        foreach ($this->getChecks() as $check) {
+            $time += $check['time'];
+        }
+
+        return round($time, 2);
+    }
+
+    /**
+     * @return array
+     */
+    public function getManagements()
+    {
+        return isset($this->data['managements']) ? $this->data['managements'] : [];
+    }
+
+    /**
+     * @return float
+     */
+    public function getManagementsTime()
+    {
+        $time = 0;
+        foreach ($this->getManagements() as $management) {
+            $time += $management['time'];
+        }
+
+        return round($time, 2);
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilters()
+    {
+        return isset($this->data['filters']) ? $this->data['filters'] : [];
+    }
+
+    /**
+     * @return float
+     */
+    public function getFiltersTime()
+    {
+        $time = 0;
+        foreach ($this->getFilters() as $filter) {
+            $time += $filter['time'];
+        }
+
+        return round($time, 2);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getName()
+    {
+        return 'acl';
+    }
+
+}

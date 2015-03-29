@@ -16,7 +16,7 @@ use Symfony\Component\Security\Core\Role\RoleInterface;
 use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-class AclFilter
+class AclFilter implements AclFilterInterface
 {
     /**
      * @var AclIdentifierInterface
@@ -87,15 +87,7 @@ class AclFilter
     }
 
     /**
-     * @param DBALQueryBuilder|ORMQueryBuilder|ORMQuery $queryBuilder
-     * @param string                                    $permission
-     * @param string                                    $oidClass
-     * @param string                                    $oidReference
-     * @param null|UserInterface                        $user
-     * @param string[]                                  $orX
-     *
-     * @return DBALQueryBuilder|ORMQuery
-     * @throws \InvalidArgumentException
+     * {@inheritdoc}
      */
     public function apply(
         $queryBuilder,

@@ -54,3 +54,6 @@ doctrine:
 #                user: root
 #                password:
 #                charset: "UTF8"
+
+alex_dpy_acl:
+    data_collector: true
