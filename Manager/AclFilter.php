@@ -156,13 +156,17 @@ class AclFilter
      */
     private function getAclJoin(Connection $connection, $oidClass, UserInterface $user = null)
     {
+        $sidIds = $this->findSidIds($connection, $user);
+
         $queryBuilder = $connection->createQueryBuilder();
         $queryBuilder
             ->select('acl_o.object_identifier', 'acl_e.granting', 'acl_e.granting_strategy', 'acl_e.mask')
             ->from($this->aclTables['entry'], 'acl_e')
             ->innerJoin('acl_e', $this->aclTables['oid'], 'acl_o', 'acl_e.object_identity_id = acl_o.id')
             ->where('acl_e.class_id = ' . $this->findClassId($connection, $oidClass))
-            ->andWhere($queryBuilder->expr()->in('acl_e.security_identity_id', $this->findSidIds($connection, $user)));
+            ->andWhere(
+                empty($sidIds) ? '1 = 2' : $queryBuilder->expr()->in('acl_e.security_identity_id', $sidIds)
+            );
 
         return $queryBuilder->getSQL();
     }
