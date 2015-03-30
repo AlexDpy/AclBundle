@@ -21,5 +21,13 @@ class AlexDpyAclExtension extends Extension
         $loader->load('services.yml');
 
         $container->setAlias('alex_dpy_acl.permission_map', $config['permission_map_id']);
+
+        //Decorated services are only supported since symfony 2.5
+        if (true === $config['data_collector'] && method_exists(
+            'Symfony\Component\DependencyInjection\Definition',
+            'setDecoratedService'
+        )) {
+            $loader->load('collectors.yml');
+        }
     }
 }

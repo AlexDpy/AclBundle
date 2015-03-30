@@ -17,7 +17,13 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->scalarNode('permission_map_id')->defaultValue('security.acl.permission.map')->cannotBeEmpty()->end()
+                ->scalarNode('permission_map_id')
+                    ->defaultValue('security.acl.permission.map')
+                    ->cannotBeEmpty()
+                ->end()
+                ->booleanNode('data_collector')
+                    ->defaultValue(false)
+                ->end()
             ->end();
 
         return $treeBuilder;
