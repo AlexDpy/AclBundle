@@ -3,8 +3,6 @@
 namespace AlexDpy\AclBundle\DataCollector\Collector;
 
 use AlexDpy\AclBundle\Manager\AclFilterInterface;
-use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
-use Doctrine\ORM\Query as ORMQuery;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 

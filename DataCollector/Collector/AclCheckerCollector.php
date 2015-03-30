@@ -2,7 +2,6 @@
 
 namespace AlexDpy\AclBundle\DataCollector\Collector;
 
-
 use AlexDpy\AclBundle\Manager\AclCheckerInterface;
 use AlexDpy\AclBundle\Manager\AclIdentifierInterface;
 use Symfony\Component\Security\Acl\Voter\FieldVote;

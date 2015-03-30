@@ -8,7 +8,6 @@ use Symfony\Component\Security\Acl\Dbal\MutableAclProvider;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
-use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\Util\ClassUtils;

@@ -5,7 +5,6 @@ namespace AlexDpy\AclBundle\Manager;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 use Doctrine\ORM\Query as ORMQuery;
 use Doctrine\ORM\QueryBuilder as ORMQueryBuilder;
-
 use Symfony\Component\Security\Core\User\UserInterface;
 
 interface AclFilterInterface
