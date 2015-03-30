@@ -6,6 +6,7 @@ use AlexDpy\AclBundle\Manager\AclFilterInterface;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 use Doctrine\ORM\Query as ORMQuery;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 class AclFilterCollector implements AclFilterInterface
 {
@@ -15,42 +16,47 @@ class AclFilterCollector implements AclFilterInterface
     private $aclFilter;
 
     /**
+     * @var Stopwatch
+     */
+    private $stopwatch;
+
+    /**
      * @var array
      */
     private $filters;
 
     /**
      * @param AclFilterInterface $aclFilter
+     * @param Stopwatch          $stopwatch
      */
-    public function __construct(AclFilterInterface $aclFilter)
+    public function __construct(AclFilterInterface $aclFilter, Stopwatch $stopwatch)
     {
         $this->aclFilter = $aclFilter;
+        $this->stopwatch = $stopwatch;
         $this->filters = [];
     }
 
     /**
-     * @param DBALQueryBuilder|ORMQuery $result
-     * @param float                     $startTime
+     * @param string $function
+     * @param array  $arguments
+     *
+     * @return mixed
      */
-    private function collectFilter($result, $startTime)
+    private function collectFilter($function, $arguments)
     {
-        $time = (microtime(true) - $startTime) * 1000;
+        $this->stopwatch->start('acl.filters');
 
-        $backtrace = debug_backtrace(0, 2)[1];
+        $result = call_user_func_array([$this->aclFilter, $function], $arguments);
+
+        $periods = $this->stopwatch->stop('acl.filters')->getPeriods();
 
         $this->filters[] = [
-            'method' => $backtrace['function'],
+            'method' => $function,
             'query' => $result->getSQL(),
-            'time' => $time
+            'time' => end($periods)->getDuration()
         ];
-    }
 
-    /**
-     * @return array
-     */
-    private function getFilters()
-    {
-        return $this->filters;
+        return $result;
     }
 
     /**
@@ -64,11 +70,7 @@ class AclFilterCollector implements AclFilterInterface
         UserInterface $user = null,
         array $orX = []
     ) {
-        $startTime = microtime(true);
-        $result = $this->aclFilter->apply($queryBuilder, $permission, $oidClass, $oidReference, $user, $orX);
-        $this->collectFilter($result, $startTime);
-
-        return $result;
+        return $this->collectFilter(__FUNCTION__, func_get_args());
     }
 
     /**

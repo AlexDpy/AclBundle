@@ -6,6 +6,7 @@ namespace AlexDpy\AclBundle\DataCollector\Collector;
 use AlexDpy\AclBundle\Manager\AclCheckerInterface;
 use AlexDpy\AclBundle\Manager\AclIdentifierInterface;
 use Symfony\Component\Security\Acl\Voter\FieldVote;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 class AclCheckerCollector implements AclCheckerInterface
 {
@@ -13,6 +14,11 @@ class AclCheckerCollector implements AclCheckerInterface
      * @var AclCheckerInterface
      */
     private $aclChecker;
+
+    /**
+     * @var Stopwatch
+     */
+    private $stopwatch;
 
     /**
      * @var array
@@ -31,8 +37,9 @@ class AclCheckerCollector implements AclCheckerInterface
 
     /**
      * @param AclCheckerInterface $aclChecker
+     * @param Stopwatch           $stopwatch
      */
-    public function __construct(AclCheckerInterface $aclChecker)
+    public function __construct(AclCheckerInterface $aclChecker, Stopwatch $stopwatch)
     {
         $this->getObjectToSecure = new \ReflectionMethod('AlexDpy\AclBundle\Manager\AclChecker', 'getObjectToSecure');
         $this->getObjectToSecure->setAccessible(true);
@@ -42,30 +49,37 @@ class AclCheckerCollector implements AclCheckerInterface
         $this->aclIdentifier = $aclIdentifierProperty->getValue($aclChecker);
 
         $this->aclChecker = $aclChecker;
+        $this->stopwatch = $stopwatch;
         $this->checks = [];
     }
 
     /**
-     * @param bool  $result
-     * @param float $startTime
+     * @param string $function
+     * @param array  $arguments
+     *
+     * @return mixed
      */
-    private function collectCheck($result, $startTime)
+    private function collectCheck($function, array $arguments)
     {
-        $time = (microtime(true) - $startTime) * 1000;
+        $this->stopwatch->start('acl.checks');
+
+        $result = call_user_func_array([$this->aclChecker, $function], $arguments);
+
+        $periods = $this->stopwatch->stop('acl.checks')->getPeriods();
 
         $backtrace = debug_backtrace(0, 2)[1];
 
-        $oidType = 'Class' === substr($backtrace['function'], -5)
+        $oidType = 'Class' === substr($function, -5)
             ? AclIdentifierInterface::OID_TYPE_CLASS
             : AclIdentifierInterface::OID_TYPE_OBJECT;
 
-        if ('is' === substr($backtrace['function'], 0, 2)) {
+        if ('is' === substr($function, 0, 2)) {
             $attributes = $backtrace['args'][0];
             $field = isset($backtrace['args'][2]) ? $backtrace['args'][2] : null;
             $oid = $this->getObjectToSecure->invoke($this->aclChecker, $oidType, $backtrace['args'][1], $field);
             $sid = $this->aclIdentifier->getUserSecurityIdentity();
         } else {
-            $sid = 'role' === substr($backtrace['function'], 0, 4)
+            $sid = 'role' === substr($function, 0, 4)
                 ? $this->aclIdentifier->getRoleSecurityIdentity($backtrace['args'][0])
                 : $this->aclIdentifier->getUserSecurityIdentity($backtrace['args'][0]);
             $attributes = $backtrace['args'][1];
@@ -76,22 +90,16 @@ class AclCheckerCollector implements AclCheckerInterface
         $isFieldVote = $oid instanceof FieldVote;
 
         $this->checks[] = [
-            'method' => $backtrace['function'],
+            'method' => $function,
             'result' => $result,
             'attributes' => (array) $attributes,
             'oid' => $isFieldVote ? $oid->getDomainObject() : $oid,
             'sid' => $sid,
             'field' => $isFieldVote ? $oid->getField() : null,
-            'time' => $time
+            'time' => end($periods)->getDuration()
         ];
-    }
 
-    /**
-     * @return array
-     */
-    private function getChecks()
-    {
-        return $this->checks;
+        return $result;
     }
 
     /**
@@ -99,11 +107,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function isGrantedOnClass($attributes, $class, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->isGrantedOnClass($attributes, $class, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -111,11 +115,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function isGrantedOnObject($attributes, $object, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->isGrantedOnObject($attributes, $object, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -123,11 +123,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function roleIsGrantedOnClass($role, $attributes, $class, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->roleIsGrantedOnClass($role, $attributes, $class, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -135,11 +131,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function roleIsGrantedOnObject($role, $attributes, $object, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->roleIsGrantedOnObject($role, $attributes, $object, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -147,11 +139,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function userIsGrantedOnClass($user, $attributes, $class, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->userIsGrantedOnClass($user, $attributes, $class, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -159,11 +147,7 @@ class AclCheckerCollector implements AclCheckerInterface
      */
     public function userIsGrantedOnObject($user, $attributes, $object, $field = null)
     {
-        $startTime = microtime(true);
-        $isGranted = $this->aclChecker->userIsGrantedOnObject($user, $attributes, $object, $field);
-        $this->collectCheck($isGranted, $startTime);
-
-        return $isGranted;
+        return $this->collectCheck(__FUNCTION__, func_get_args());
     }
 
     /**

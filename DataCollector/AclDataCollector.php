@@ -55,17 +55,17 @@ class AclDataCollector extends DataCollector implements LateDataCollectorInterfa
      */
     public function lateCollect()
     {
-        $getChecks = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclCheckerCollector', 'getChecks');
-        $getChecks->setAccessible(true);
-        $this->data['checks'] = $getChecks->invoke($this->aclCheckerCollector);
+        $checks = new \ReflectionProperty('AlexDpy\AclBundle\DataCollector\Collector\AclCheckerCollector', 'checks');
+        $checks->setAccessible(true);
+        $this->data['checks'] = $checks->getValue($this->aclCheckerCollector);
 
-        $getManagements = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclManagerCollector', 'getManagements');
-        $getManagements->setAccessible(true);
-        $this->data['managements'] = $getManagements->invoke($this->aclManagerCollector);
+        $managements = new \ReflectionProperty('AlexDpy\AclBundle\DataCollector\Collector\AclManagerCollector', 'managements');
+        $managements->setAccessible(true);
+        $this->data['managements'] = $managements->getValue($this->aclManagerCollector);
 
-        $getFilters = new \ReflectionMethod('AlexDpy\AclBundle\DataCollector\Collector\AclFilterCollector', 'getFilters');
-        $getFilters->setAccessible(true);
-        $this->data['filters'] = $getFilters->invoke($this->aclFilterCollector);
+        $filters = new \ReflectionProperty('AlexDpy\AclBundle\DataCollector\Collector\AclFilterCollector', 'filters');
+        $filters->setAccessible(true);
+        $this->data['filters'] = $filters->getValue($this->aclFilterCollector);
     }
 
     /**

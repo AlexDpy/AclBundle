@@ -5,6 +5,7 @@ namespace AlexDpy\AclBundle\DataCollector\Collector;
 use AlexDpy\AclBundle\Manager\AclIdentifierInterface;
 use AlexDpy\AclBundle\Manager\AclManagerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 class AclManagerCollector implements AclManagerInterface
 {
@@ -12,6 +13,11 @@ class AclManagerCollector implements AclManagerInterface
      * @var AclManagerInterface
      */
     private $aclManager;
+
+    /**
+     * @var Stopwatch
+     */
+    private $stopwatch;
 
     /**
      * @var array
@@ -25,31 +31,40 @@ class AclManagerCollector implements AclManagerInterface
 
     /**
      * @param AclManagerInterface $aclManager
+     * @param Stopwatch           $stopwatch
      */
-    public function __construct(AclManagerInterface $aclManager)
+    public function __construct(AclManagerInterface $aclManager, Stopwatch $stopwatch)
     {
         $aclIdentifierProperty = new \ReflectionProperty('AlexDpy\AclBundle\Manager\AclManager', 'aclIdentifier');
         $aclIdentifierProperty->setAccessible(true);
         $this->aclIdentifier = $aclIdentifierProperty->getValue($aclManager);
 
         $this->aclManager = $aclManager;
+        $this->stopwatch = $stopwatch;
         $this->managements = [];
     }
 
     /**
-     * @param float $startTime
+     * @param string $function
+     * @param array  $arguments
+     *
+     * @return mixed
      */
-    private function collectManagement($startTime)
+    private function collectManagement($function, $arguments)
     {
-        $time = (microtime(true) - $startTime) * 1000;
+        $this->stopwatch->start('acl.managements');
+
+        $result = call_user_func_array([$this->aclManager, $function], $arguments);
+
+        $periods = $this->stopwatch->stop('acl.managements')->getPeriods();
 
         $backtrace = debug_backtrace(0, 2)[1];
 
-        $oidType = 'Class' === substr($backtrace['function'], -5)
+        $oidType = 'Class' === substr($function, -5)
             ? AclIdentifierInterface::OID_TYPE_CLASS
             : AclIdentifierInterface::OID_TYPE_OBJECT;
 
-        if ('delete' === substr($backtrace['function'], 0, 6)) {
+        if ('delete' === substr($function, 0, 6)) {
             $permissions = null;
             $oid = $this->aclIdentifier->getObjectIdentity($oidType, $backtrace['args'][0]);
             $sid = null;
@@ -57,7 +72,7 @@ class AclManagerCollector implements AclManagerInterface
         } else {
             $permissions = $backtrace['args'][0];
             $oid = $this->aclIdentifier->getObjectIdentity($oidType, $backtrace['args'][1]);
-            $sid = false !== strpos($backtrace['function'], 'Role')
+            $sid = false !== strpos($function, 'Role')
                 ? $this->aclIdentifier->getRoleSecurityIdentity($backtrace['args'][2])
                 : $this->aclIdentifier->getUserSecurityIdentity(
                     isset($backtrace['args'][2]) ? $backtrace['args'][2] : null
@@ -66,21 +81,15 @@ class AclManagerCollector implements AclManagerInterface
         }
 
         $this->managements[] = [
-            'method' => $backtrace['function'],
+            'method' => $function,
             'permissions' => (array) $permissions,
             'oid' => $oid,
             'sid' => $sid,
             'field' => $field,
-            'time' => $time
+            'time' => end($periods)->getDuration()
         ];
-    }
-
-    /**
-     * @return array
-     */
-    private function getManagements()
-    {
-        return $this->managements;
+        
+        return $result;
     }
 
     /**
@@ -88,9 +97,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function grantRoleOnClass($permissions, $class, $role, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->grantRoleOnClass($permissions, $class, $role, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -98,9 +105,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function grantRoleOnObject($permissions, $object, $role, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->grantRoleOnObject($permissions, $object, $role, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -108,9 +113,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function grantUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->grantUserOnClass($permissions, $class, $user, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -118,9 +121,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function grantUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->grantUserOnObject($permissions, $object, $user , $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -128,9 +129,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function revokeRoleOnClass($permissions, $class, $role, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->revokeRoleOnClass($permissions, $class, $role, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -138,9 +137,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function revokeRoleOnObject($permissions, $object, $role, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->revokeRoleOnObject($permissions, $object, $role, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -148,9 +145,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function revokeUserOnClass($permissions, $class, UserInterface $user = null, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->revokeUserOnClass($permissions, $class, $user, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -158,9 +153,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-        $startTime = microtime(true);
-        $this->aclManager->revokeUserOnObject($permissions, $object, $user, $field);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -168,9 +161,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function deleteAclForClass($class)
     {
-        $startTime = microtime(true);
-        $this->aclManager->deleteAclForClass($class);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**
@@ -178,9 +169,7 @@ class AclManagerCollector implements AclManagerInterface
      */
     public function deleteAclForObject($object)
     {
-        $startTime = microtime(true);
-        $this->aclManager->deleteAclForObject($object);
-        $this->collectManagement($startTime);
+        return $this->collectManagement(__FUNCTION__, func_get_args());
     }
 
     /**

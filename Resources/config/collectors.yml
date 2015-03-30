@@ -5,6 +5,7 @@ services:
         decorates: alex_dpy_acl.acl_checker
         arguments:
             - @alex_dpy_acl.acl_checker.collector.inner
+            - @debug.stopwatch
 
     alex_dpy_acl.acl_manager.collector:
         class: AlexDpy\AclBundle\DataCollector\Collector\AclManagerCollector
@@ -12,6 +13,7 @@ services:
         decorates: alex_dpy_acl.acl_manager
         arguments:
             - @alex_dpy_acl.acl_manager.collector.inner
+            - @debug.stopwatch
 
     alex_dpy_acl.acl_filter.collector:
         class: AlexDpy\AclBundle\DataCollector\Collector\AclFilterCollector
@@ -19,6 +21,7 @@ services:
         decorates: alex_dpy_acl.acl_filter
         arguments:
             - @alex_dpy_acl.acl_filter.collector.inner
+            - @debug.stopwatch
 
     alex_dpy_acl.acl_data_collector:
         class: AlexDpy\AclBundle\DataCollector\AclDataCollector
