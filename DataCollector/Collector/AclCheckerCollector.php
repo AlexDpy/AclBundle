@@ -66,24 +66,22 @@ class AclCheckerCollector implements AclCheckerInterface
 
         $periods = $this->stopwatch->stop('acl.checks')->getPeriods();
 
-        $backtrace = debug_backtrace(0, 2)[1];
-
         $oidType = 'Class' === substr($function, -5)
             ? AclIdentifierInterface::OID_TYPE_CLASS
             : AclIdentifierInterface::OID_TYPE_OBJECT;
 
         if ('is' === substr($function, 0, 2)) {
-            $attributes = $backtrace['args'][0];
-            $field = isset($backtrace['args'][2]) ? $backtrace['args'][2] : null;
-            $oid = $this->getObjectToSecure->invoke($this->aclChecker, $oidType, $backtrace['args'][1], $field);
+            $attributes = $arguments[0];
+            $field = isset($arguments[2]) ? $arguments[2] : null;
+            $oid = $this->getObjectToSecure->invoke($this->aclChecker, $oidType, $arguments[1], $field);
             $sid = $this->aclIdentifier->getUserSecurityIdentity();
         } else {
             $sid = 'role' === substr($function, 0, 4)
-                ? $this->aclIdentifier->getRoleSecurityIdentity($backtrace['args'][0])
-                : $this->aclIdentifier->getUserSecurityIdentity($backtrace['args'][0]);
-            $attributes = $backtrace['args'][1];
-            $field = isset($backtrace['args'][3]) ? $backtrace['args'][3] : null;
-            $oid = $this->getObjectToSecure->invoke($this->aclChecker, $oidType, $backtrace['args'][2], $field);
+                ? $this->aclIdentifier->getRoleSecurityIdentity($arguments[0])
+                : $this->aclIdentifier->getUserSecurityIdentity($arguments[0]);
+            $attributes = $arguments[1];
+            $field = isset($arguments[3]) ? $arguments[3] : null;
+            $oid = $this->getObjectToSecure->invoke($this->aclChecker, $oidType, $arguments[2], $field);
         }
 
         $isFieldVote = $oid instanceof FieldVote;

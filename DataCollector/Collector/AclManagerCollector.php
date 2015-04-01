@@ -58,26 +58,24 @@ class AclManagerCollector implements AclManagerInterface
 
         $periods = $this->stopwatch->stop('acl.managements')->getPeriods();
 
-        $backtrace = debug_backtrace(0, 2)[1];
-
         $oidType = 'Class' === substr($function, -5)
             ? AclIdentifierInterface::OID_TYPE_CLASS
             : AclIdentifierInterface::OID_TYPE_OBJECT;
 
         if ('delete' === substr($function, 0, 6)) {
             $permissions = null;
-            $oid = $this->aclIdentifier->getObjectIdentity($oidType, $backtrace['args'][0]);
+            $oid = $this->aclIdentifier->getObjectIdentity($oidType, $arguments[0]);
             $sid = null;
             $field = null;
         } else {
-            $permissions = $backtrace['args'][0];
-            $oid = $this->aclIdentifier->getObjectIdentity($oidType, $backtrace['args'][1]);
+            $permissions = $arguments[0];
+            $oid = $this->aclIdentifier->getObjectIdentity($oidType, $arguments[1]);
             $sid = false !== strpos($function, 'Role')
-                ? $this->aclIdentifier->getRoleSecurityIdentity($backtrace['args'][2])
+                ? $this->aclIdentifier->getRoleSecurityIdentity($arguments[2])
                 : $this->aclIdentifier->getUserSecurityIdentity(
-                    isset($backtrace['args'][2]) ? $backtrace['args'][2] : null
+                    isset($arguments[2]) ? $arguments[2] : null
                 );
-            $field = isset($backtrace['args'][3]) ? $backtrace['args'][3] : null;
+            $field = isset($arguments[3]) ? $arguments[3] : null;
         }
 
         $this->managements[] = [
@@ -88,7 +86,7 @@ class AclManagerCollector implements AclManagerInterface
             'field' => $field,
             'time' => end($periods)->getDuration()
         ];
-        
+
         return $result;
     }
 
