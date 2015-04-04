@@ -8,6 +8,7 @@ use Symfony\Component\Security\Acl\Dbal\MutableAclProvider;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Domain\RoleSecurityIdentity;
 use Symfony\Component\Security\Acl\Domain\UserSecurityIdentity;
+use Symfony\Component\Security\Acl\Model\ObjectIdentityInterface;
 use Symfony\Component\Security\Core\SecurityContextInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\Util\ClassUtils;
@@ -57,6 +58,10 @@ class AclIdentifier implements AclIdentifierInterface
      */
     public function getObjectIdentity($type, $classOrObject)
     {
+        if ($classOrObject instanceof ObjectIdentityInterface) {
+            return $classOrObject;
+        }
+
         switch ($type) {
             case self::OID_TYPE_CLASS:
                 if (is_object($classOrObject)) {

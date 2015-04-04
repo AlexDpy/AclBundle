@@ -6,6 +6,7 @@ use AlexDpy\AclBundle\Exception\OidTypeException;
 use AlexDpy\AclBundle\Manager\AclIdentifierInterface;
 use AlexDpy\AclBundle\Tests\Model\FooObject;
 use AlexDpy\AclBundle\Tests\Security\AbstractSecurityTest;
+use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Core\User\User;
 
 class AclIdentifierTest extends AbstractSecurityTest
@@ -33,6 +34,14 @@ class AclIdentifierTest extends AbstractSecurityTest
             $this->aclIdentifier->getObjectIdentity(
                 AclIdentifierInterface::OID_TYPE_OBJECT,
                 new FooObject(1)
+            )
+        );
+
+        $this->assertInstanceOf(
+            'Symfony\Component\Security\Acl\Model\ObjectIdentityInterface',
+            $this->aclIdentifier->getObjectIdentity(
+                'thistypedoesnotexist',
+                new ObjectIdentity('class', 'Foo')
             )
         );
 

@@ -15,8 +15,8 @@ interface AclIdentifierInterface
     const OID_TYPE_OBJECT = 'object';
 
     /**
-     * @param string        $type
-     * @param string|object $classOrObject
+     * @param string                                $type
+     * @param string|object|ObjectIdentityInterface $classOrObject
      *
      * @return ObjectIdentityInterface
      * @throws OidTypeException            When the $type is not supported
