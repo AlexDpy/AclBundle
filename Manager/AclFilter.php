@@ -165,7 +165,7 @@ class AclFilter implements AclFilterInterface
 
     /**
      * @param Connection $connection
-     * @param $permission
+     * @param string $permission
      *
      * @return string
      * @throws \Exception

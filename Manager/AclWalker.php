@@ -37,7 +37,7 @@ SQL;
      */
     public function walkWhereClause($whereClause)
     {
-        $sql =  parent::walkWhereClause($whereClause);
+        $sql = parent::walkWhereClause($whereClause);
 
         $aclWhereClause = $this->getQuery()->getHint('acl_where_clause');
         $orX = $this->getQuery()->getHint('acl_filter_or_x');
