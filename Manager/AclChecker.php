@@ -139,7 +139,7 @@ class AclChecker implements AclCheckerInterface
      */
     protected function getRoleToken($role)
     {
-        return $role instanceof TokenInterface ? $role :  new FakeRoleToken((array) $role);
+        return $role instanceof TokenInterface ? $role : new FakeRoleToken((array) $role);
     }
 
     /**

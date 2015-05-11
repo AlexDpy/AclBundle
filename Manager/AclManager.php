@@ -151,12 +151,12 @@ class AclManager implements AclManagerInterface
      */
     public function revokeUserOnObject($permissions, $object, UserInterface $user = null, $field = null)
     {
-         $this->revoke(
-             $this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object),
-             $this->aclIdentifier->getUserSecurityIdentity($user),
-             $permissions,
-             AclIdentifierInterface::OID_TYPE_OBJECT,
-             $field
+            $this->revoke(
+                $this->aclIdentifier->getObjectIdentity(AclIdentifierInterface::OID_TYPE_OBJECT, $object),
+                $this->aclIdentifier->getUserSecurityIdentity($user),
+                $permissions,
+                AclIdentifierInterface::OID_TYPE_OBJECT,
+                $field
         );
     }
 
